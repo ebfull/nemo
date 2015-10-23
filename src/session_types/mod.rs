@@ -5,7 +5,11 @@
 //! do anything except receive a `usize`. And when it is finished, it will
 //! be in state `Eps`, which means it can do nothing except close the channel.
 
+mod choose;
+
 use std::marker::PhantomData;
+use peano::*;
+pub use self::choose::{Chooser,Accept,Choose,Finally,Acceptor};
 
 /// All session types have duality. Two clients that communicate will
 /// always have a session type that is the dual of their counterpart.
@@ -53,12 +57,11 @@ unsafe impl<S: SessionType> SessionType for Nest<S> {
 
 /// Escape from a nested scope by an arbitrary number of layers `N`, using
 /// peano numbers.
-pub struct Escape<N> ( PhantomData<N> );
+pub struct Escape<N: Peano> ( PhantomData<N> );
 
-unsafe impl<N> SessionType for Escape<N> {
+unsafe impl<N: Peano> SessionType for Escape<N> {
     type Dual = Escape<N>;
 }
-
 
 // TODO: understand the interactions and needs of these impls
 unsafe impl SessionType for () {

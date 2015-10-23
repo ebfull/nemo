@@ -11,6 +11,8 @@
 //! *must* be implemented properly -- your code simply will not compile
 //! otherwise.
 
+#![feature(optin_builtin_traits)]
+
 pub mod peano;
 pub mod session_types;
 pub mod channels;

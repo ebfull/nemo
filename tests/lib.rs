@@ -4,6 +4,74 @@ use nemo::session_types::*;
 use nemo::peano::*;
 
 #[test]
+fn choosing_protocol() {
+    use nemo::channels::Blocking;
+
+    struct MyProtocol;
+
+    type SendString = Send<String, Eps>;
+    type SendUsize = Send<usize, Eps>;
+    type SendIsize = Send<isize, Eps>;
+    type Orig = Choose<SendString, Choose<SendUsize, Finally<SendIsize>>>;
+
+    type Dual_SendString = Recv<String, Eps>;
+    type Dual_SendUsize = Recv<usize, Eps>;
+    type Dual_SendIsize = Recv<isize, Eps>;
+    type Dual_Orig = Accept<Dual_SendString, Accept<Dual_SendUsize, Finally<Dual_SendIsize>>>;
+
+    impl Protocol for MyProtocol {
+        type Initial = Orig;
+    }
+
+    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
+        fn with<'a>(this: Chan<'a, I, E, Orig>) -> Defer<Self, I> {
+            this.choose::<SendIsize>().send(10).close()
+        }
+    }
+
+    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Dual_Orig> for MyProtocol {
+        fn with<'a>(this: Chan<'a, I, E, Dual_Orig>) -> Defer<Self, I> {
+            this.accept()
+        }
+    }
+
+    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Dual_SendString> for MyProtocol {
+        fn with<'a>(this: Chan<'a, I, E, Dual_SendString>) -> Defer<Self, I> {
+            panic!("should not have received a string..")
+        }
+    }
+
+    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Dual_SendUsize> for MyProtocol {
+        fn with<'a>(this: Chan<'a, I, E, Dual_SendUsize>) -> Defer<Self, I> {
+            panic!("should not have received a usize..")
+        }
+    }
+
+    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Dual_SendIsize> for MyProtocol {
+        fn with<'a>(this: Chan<'a, I, E, Dual_SendIsize>) -> Defer<Self, I> {
+            match this.recv() {
+                Ok((msg, sess)) => {
+                    assert_eq!(msg, 10);
+
+                    sess.close()
+                },
+                Err(sess) => {
+                    panic!("expected to get a message...");
+                }
+            }
+        }
+    }
+
+    let (mut io1, mut io2) = Blocking::new();
+
+    let mut client1: Session<MyProtocol, Blocking> = Session::new();
+    let mut client2: Session<MyProtocol, Blocking> = Session::new_dual();
+    assert_eq!(false, client1.with(&mut io1)); // client1 chooses a protocol, sends 10, closes channel
+    assert_eq!(true, client2.with(&mut io2)); // client2 accepts the protocol, defers
+    assert_eq!(false, client2.with(&mut io2)); // client2 receives the isize, asserts it's 10, closes channel
+}
+
+#[test]
 fn recursive_protocol() {
     use nemo::channels::Blocking;
 

@@ -18,7 +18,7 @@ pub struct Session<P: Protocol, I>(Defer<P, I>);
 /// Handlers must return `Defer` to indicate to the `Session` how to proceed in
 /// the future. `Defer` can be obtained by calling `.defer()` on the channel, or
 /// by calling `.close()` when the session is `Eps`.
-pub struct Defer<P: Protocol, I>(DeferFunc<I, P, (), ()>, PhantomData<P>, bool);
+pub struct Defer<P: Protocol, I>(pub DeferFunc<I, P, (), ()>, pub PhantomData<P>, pub bool);
 
 #[doc(hidden)]
 pub type DeferFunc<I, P, E, S> = for<'a> fn(Chan<'a, I, E, S>) -> Defer<P, I>;
@@ -85,7 +85,7 @@ impl<'a, I, E: SessionType, S: SessionType> Chan<'a, I, E, S> {
 // TODO: refactor IO, add supertrait for close()
 impl<'a, I: IO<usize>, E: SessionType> Chan<'a, I, E, Eps> {
     /// Close the channel. Only possible if it's in `Eps` (epsilon) state.
-    pub fn close<P: Handler<I, E, Eps>>(self) -> Defer<P, I> {
+    pub fn close<P: Protocol>(self) -> Defer<P, I> {
         self.0.close();
 
         let next_func: DeferFunc<I, P, E, Eps> = Dummy::<I, P, E, Eps>::with;
@@ -126,6 +126,29 @@ impl<'a, I, N: Peano, E: SessionType + Pop<N>> Chan<'a, I, E, Escape<N>> {
     /// Escape from a nested protocol.
     pub fn pop(self) -> Chan<'a, I, E::Tail, E::Head> {
         Chan(self.0, PhantomData)
+    }
+}
+
+impl<'a, I: IO<u8>, E: SessionType, P: SessionType> Chan<'a, I, E, P> {
+    /// Select a protocol to advance to.
+    pub fn choose<S: SessionType>(self) -> Chan<'a, I, E, S> where P: Chooser<S> {
+        self.0.send(P::num());
+
+        Chan(self.0, PhantomData)
+    }
+}
+
+impl<'a, I: IO<u8>, E: SessionType, S: SessionType> Chan<'a, I, E, S> {
+    /// Accept one of many protocols and advance to its handler.
+    pub fn accept<P: Protocol + Handler<I, E, S> + Acceptor<I, E, S>>(self) -> Defer<P, I> {
+        match self.0.recv() {
+            Some(num) => {
+                <P as Acceptor<I, E, S>>::defer(num)
+            },
+            None => {
+                self.defer()
+            }
+        }
     }
 }
 

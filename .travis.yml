@@ -1,6 +1,14 @@
 sudo: false
 language: rust
 
+rust:
+  - stable
+  - nightly
+
+matrix:
+  allow_failures:
+    - rust: stable
+
 script:
   - cargo build --verbose
   - cargo test --verbose

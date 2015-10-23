@@ -31,19 +31,19 @@ impl Blocking {
     }
 }
 
-impl<T: Send + 'static> IO<T> for Blocking {
-    fn send(&mut self, obj: T) {
-        self.tx.send(unsafe { mem::transmute(Box::new(obj)) }).unwrap();
+unsafe impl<T: Send + 'static> IO<T> for Blocking {
+    unsafe fn send(&mut self, obj: T) {
+        self.tx.send(mem::transmute(Box::new(obj))).unwrap();
     }
 
-    fn recv(&mut self) -> Option<T> {
+    unsafe fn recv(&mut self) -> Option<T> {
         let tmp: Box<usize> = self.rx.recv().unwrap();
-        let tmp: Box<T> = unsafe { mem::transmute(tmp) };
+        let tmp: Box<T> = mem::transmute(tmp);
 
         Some(*tmp)
     }
 
-    fn close(&mut self) {
+    unsafe fn close(&mut self) {
         // we can close the channel now
     }
 }

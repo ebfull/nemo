@@ -86,7 +86,7 @@ impl<'a, I, E: SessionType, S: SessionType> Chan<'a, I, E, S> {
 impl<'a, I: IO<usize>, E: SessionType> Chan<'a, I, E, End> {
     /// Close the channel. Only possible if it's in the `End` state.
     pub fn close<P: Protocol>(self) -> Defer<P, I> {
-        self.0.close();
+        unsafe { self.0.close(); }
 
         let next_func: DeferFunc<I, P, E, End> = Dummy::<I, P, E, End>::with;
 
@@ -97,7 +97,7 @@ impl<'a, I: IO<usize>, E: SessionType> Chan<'a, I, E, End> {
 impl<'a, I: IO<A>, A, E: SessionType, S: SessionType> Chan<'a, I, E, Send<A, S>> {
     /// Send an `A` to IO.
     pub fn send(self, a: A) -> Chan<'a, I, E, S> {
-        self.0.send(a);
+        unsafe { self.0.send(a); }
 
         Chan(self.0, PhantomData)
     }
@@ -106,7 +106,7 @@ impl<'a, I: IO<A>, A, E: SessionType, S: SessionType> Chan<'a, I, E, Send<A, S>>
 impl<'a, I: IO<A>, A, E: SessionType, S: SessionType> Chan<'a, I, E, Recv<A, S>> {
     /// Receive an `A` from IO.
     pub fn recv(self) -> Result<(A, Chan<'a, I, E, S>), Self> {
-        match self.0.recv() {
+        match unsafe { self.0.recv() } {
             Some(res) => Ok((res, unsafe { mem::transmute(self) })),
             None => {
                 Err(self)
@@ -132,7 +132,7 @@ impl<'a, I, N: Peano, E: SessionType + Pop<N>> Chan<'a, I, E, Escape<N>> {
 impl<'a, I: IO<usize>, E: SessionType, P: SessionType> Chan<'a, I, E, P> {
     /// Select a protocol to advance to.
     pub fn choose<S: SessionType>(self) -> Chan<'a, I, E, S> where P: Chooser<S> {
-        self.0.send(P::num());
+        unsafe { self.0.send(P::num()); }
 
         Chan(self.0, PhantomData)
     }
@@ -141,7 +141,7 @@ impl<'a, I: IO<usize>, E: SessionType, P: SessionType> Chan<'a, I, E, P> {
 impl<'a, I: IO<usize>, E: SessionType, S: SessionType, Q: SessionType> Chan<'a, I, E, Accept<S, Q>> {
     /// Accept one of many protocols and advance to its handler.
     pub fn accept<P: Protocol + Handler<I, E, Accept<S, Q>> + Acceptor<I, E, Accept<S, Q>>>(self) -> Defer<P, I> {
-        match self.0.recv() {
+        match unsafe { self.0.recv() } {
             Some(num) => {
                 <P as Acceptor<I, E, Accept<S, Q>>>::defer(num)
             },

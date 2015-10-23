@@ -14,11 +14,3 @@ Nemo provides an `IO` trait for implementing backends. As an example, nemo provi
 * Message tagging can be reduced or eliminated in some situations
 * Complicated protocols can be described and implemented in a way that does not cause safety issues or race conditions/unexpected behavior
 * IO backends can be swapped at any time, or wrapped for simulation purposes
-
-----------------------------------
-
-### Further work ahead
-* Modifications may be needed to fully support things like `serde`/`bincode`/`nom`
-* Macros or DSLs need to be implemented to simplify the protocol descriptions
-* [#29205](https://github.com/rust-lang/rust/issues/29205)
-* Heterogeneous selection is not yet available

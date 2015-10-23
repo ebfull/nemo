@@ -4,16 +4,16 @@ use super::SessionType;
 use protocol::{Protocol, Handler, Defer, DeferFunc};
 
 /// This trait effectively posits that a protocol which handles `T` must
-/// additionally handle other types. If `T` is an `Accept<P, Q>` the
-/// protocol must handle `P` *and* be an `Acceptor` of `Q`. If `T` is 
-/// a `Finally<P>` it must handle `P`.
+/// additionally handle other types. If `T` is an `Accept<S, Q>` the
+/// protocol must handle `S` *and* be an `Acceptor` of `Q`. If `T` is 
+/// a `Finally<S>` it must handle `S`.
 pub trait Acceptor<I, E, T>: Protocol + Sized {
 	fn defer(usize) -> Defer<Self, I>;
 }
-impl<I, E: SessionType, H: Protocol + Handler<I, E, P> + Acceptor<I, E, Q>, P: SessionType, Q: SessionType> Acceptor<I, E, Accept<P, Q>> for H {
+impl<I, E: SessionType, H: Protocol + Handler<I, E, S> + Acceptor<I, E, Q>, S: SessionType, Q: SessionType> Acceptor<I, E, Accept<S, Q>> for H {
 	fn defer(num: usize) -> Defer<H, I> {
 		if num == 0 {
-			let next_func: DeferFunc<I, Self, E, P> = <Self as Handler<I, E, P>>::with;
+			let next_func: DeferFunc<Self, I, E, S> = <Self as Handler<I, E, S>>::with;
 
 			Defer(unsafe { mem::transmute(next_func) }, PhantomData, true)
 		} else {
@@ -21,20 +21,20 @@ impl<I, E: SessionType, H: Protocol + Handler<I, E, P> + Acceptor<I, E, Q>, P: S
 		}
 	}
 }
-impl<I, E: SessionType, H: Protocol + Handler<I, E, P>,                     P: SessionType>                 Acceptor<I, E, Finally<P>>   for H {
+impl<I, E: SessionType, H: Protocol + Handler<I, E, S>,                     S: SessionType>                 Acceptor<I, E, Finally<S>>   for H {
 	fn defer(_: usize) -> Defer<H, I> {
 		// regardless of num we cannot proceed further than Finally
-		let next_func: DeferFunc<I, Self, E, P> = <Self as Handler<I, E, P>>::with;
+		let next_func: DeferFunc<Self, I, E, S> = <Self as Handler<I, E, S>>::with;
 
 		Defer(unsafe { mem::transmute(next_func) }, PhantomData, true)
 	}
 }
 
-/// Choose from `P` or something in `Q`.
-pub struct Choose<P: SessionType, Q: SessionType>(PhantomData<(P, Q)>);
+/// Choose from `S` or something in `Q`.
+pub struct Choose<S: SessionType, Q: SessionType>(PhantomData<(S, Q)>);
 
-unsafe impl<P: SessionType, Q: SessionType> SessionType for Choose<P, Q> {
-	type Dual = Accept<P::Dual, Q::Dual>;
+unsafe impl<S: SessionType, Q: SessionType> SessionType for Choose<S, Q> {
+	type Dual = Accept<S::Dual, Q::Dual>;
 }
 
 trait NotSame { }
@@ -47,32 +47,32 @@ pub trait Chooser<T> {
 	fn num() -> usize;
 }
 
-impl<P: SessionType, Q: SessionType> Chooser<P> for Choose<P, Q> {
+impl<S: SessionType, Q: SessionType> Chooser<S> for Choose<S, Q> {
 	fn num() -> usize { 0 }
 }
 
-impl<P: SessionType> Chooser<P> for Finally<P> {
+impl<S: SessionType> Chooser<S> for Finally<S> {
 	fn num() -> usize { 0 }
 }
 
-impl<P: SessionType, S: SessionType, Q: SessionType + Chooser<S>> Chooser<S> for Choose<P, Q>
-	where (S, P): NotSame
+impl<R: SessionType, S: SessionType, Q: SessionType + Chooser<S>> Chooser<S> for Choose<R, Q>
+	where (S, R): NotSame
 {
 	fn num() -> usize { Q::num().checked_add(1).unwrap() }
 }
 
-/// Accept either `P` or something in `Q`.
-pub struct Accept<P: SessionType, Q: SessionType>(PhantomData<(P, Q)>);
+/// Accept either `S` or something in `Q`.
+pub struct Accept<S: SessionType, Q: SessionType>(PhantomData<(S, Q)>);
 
-unsafe impl<P: SessionType, Q: SessionType> SessionType for Accept<P, Q> {
-	type Dual = Choose<P::Dual, Q::Dual>;
+unsafe impl<S: SessionType, Q: SessionType> SessionType for Accept<S, Q> {
+	type Dual = Choose<S::Dual, Q::Dual>;
 }
 
-/// Finally choose `P`.
-pub struct Finally<P: SessionType>(PhantomData<P>);
+/// Finally choose `S`.
+pub struct Finally<S: SessionType>(PhantomData<S>);
 
-unsafe impl<P: SessionType> SessionType for Finally<P> {
-	type Dual = Finally<P::Dual>;
+unsafe impl<S: SessionType> SessionType for Finally<S> {
+	type Dual = Finally<S::Dual>;
 }
 
 #[test]

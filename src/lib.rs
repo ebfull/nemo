@@ -18,7 +18,7 @@ pub mod session_types;
 pub mod channels;
 mod protocol;
 
-pub use protocol::{Chan, Defer, Session, Protocol, Handler};
+pub use protocol::{Channel, Defer, Protocol, Handler, channel, channel_dual};
 
 /// This trait describes a backend for a channel to expose a message
 /// passing interface.

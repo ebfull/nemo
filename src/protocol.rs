@@ -138,12 +138,12 @@ impl<'a, I: IO<u8>, E: SessionType, P: SessionType> Chan<'a, I, E, P> {
     }
 }
 
-impl<'a, I: IO<u8>, E: SessionType, S: SessionType> Chan<'a, I, E, S> {
+impl<'a, I: IO<u8>, E: SessionType, S: SessionType, Q: SessionType> Chan<'a, I, E, Accept<S, Q>> {
     /// Accept one of many protocols and advance to its handler.
-    pub fn accept<P: Protocol + Handler<I, E, S> + Acceptor<I, E, S>>(self) -> Defer<P, I> {
+    pub fn accept<P: Protocol + Handler<I, E, Accept<S, Q>> + Acceptor<I, E, Accept<S, Q>>>(self) -> Defer<P, I> {
         match self.0.recv() {
             Some(num) => {
-                <P as Acceptor<I, E, S>>::defer(num)
+                <P as Acceptor<I, E, Accept<S, Q>>>::defer(num)
             },
             None => {
                 self.defer()

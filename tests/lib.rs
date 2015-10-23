@@ -14,10 +14,10 @@ fn choosing_protocol() {
     type SendIsize = Send<isize, Eps>;
     type Orig = Choose<SendString, Choose<SendUsize, Finally<SendIsize>>>;
 
-    type Dual_SendString = Recv<String, Eps>;
-    type Dual_SendUsize = Recv<usize, Eps>;
-    type Dual_SendIsize = Recv<isize, Eps>;
-    type Dual_Orig = Accept<Dual_SendString, Accept<Dual_SendUsize, Finally<Dual_SendIsize>>>;
+    type DualSendString = Recv<String, Eps>;
+    type DualSendUsize = Recv<usize, Eps>;
+    type DualSendIsize = Recv<isize, Eps>;
+    type DualOrig = Accept<DualSendString, Accept<DualSendUsize, Finally<DualSendIsize>>>;
 
     impl Protocol for MyProtocol {
         type Initial = Orig;
@@ -29,33 +29,33 @@ fn choosing_protocol() {
         }
     }
 
-    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Dual_Orig> for MyProtocol {
-        fn with<'a>(this: Chan<'a, I, E, Dual_Orig>) -> Defer<Self, I> {
+    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
+        fn with<'a>(this: Chan<'a, I, E, DualOrig>) -> Defer<Self, I> {
             this.accept()
         }
     }
 
-    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Dual_SendString> for MyProtocol {
-        fn with<'a>(this: Chan<'a, I, E, Dual_SendString>) -> Defer<Self, I> {
+    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendString> for MyProtocol {
+        fn with<'a>(_: Chan<'a, I, E, DualSendString>) -> Defer<Self, I> {
             panic!("should not have received a string..")
         }
     }
 
-    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Dual_SendUsize> for MyProtocol {
-        fn with<'a>(this: Chan<'a, I, E, Dual_SendUsize>) -> Defer<Self, I> {
+    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendUsize> for MyProtocol {
+        fn with<'a>(_: Chan<'a, I, E, DualSendUsize>) -> Defer<Self, I> {
             panic!("should not have received a usize..")
         }
     }
 
-    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Dual_SendIsize> for MyProtocol {
-        fn with<'a>(this: Chan<'a, I, E, Dual_SendIsize>) -> Defer<Self, I> {
+    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendIsize> for MyProtocol {
+        fn with<'a>(this: Chan<'a, I, E, DualSendIsize>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((msg, sess)) => {
                     assert_eq!(msg, 10);
 
                     sess.close()
                 },
-                Err(sess) => {
+                Err(_) => {
                     panic!("expected to get a message...");
                 }
             }

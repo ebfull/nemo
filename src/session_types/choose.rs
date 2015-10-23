@@ -75,12 +75,12 @@ unsafe impl<P: SessionType> SessionType for Finally<P> {
 
 #[test]
 fn check_choose_works() {
-	use super::{Recv, Eps};
+	use super::{Recv, End};
 
-	type GetUsize = Recv<usize, Eps>;
-	type GetU8 = Recv<u8, Eps>;
-	type GetString = Recv<String, Eps>;
-	type Getisize = Recv<isize, Eps>;
+	type GetUsize = Recv<usize, End>;
+	type GetU8 = Recv<u8, End>;
+	type GetString = Recv<String, End>;
+	type Getisize = Recv<isize, End>;
 
 	type Proto = Choose<Getisize, Choose<GetString, Choose<GetU8, Finally<GetUsize>>>>;
 

@@ -17,7 +17,7 @@ pub struct Session<P: Protocol, I>(Defer<P, I>);
 
 /// Handlers must return `Defer` to indicate to the `Session` how to proceed in
 /// the future. `Defer` can be obtained by calling `.defer()` on the channel, or
-/// by calling `.close()` when the session is `Eps`.
+/// by calling `.close()` when the session is `End`.
 pub struct Defer<P: Protocol, I>(pub DeferFunc<I, P, (), ()>, pub PhantomData<P>, pub bool);
 
 #[doc(hidden)]
@@ -83,12 +83,12 @@ impl<'a, I, E: SessionType, S: SessionType> Chan<'a, I, E, S> {
 }
 
 // TODO: refactor IO, add supertrait for close()
-impl<'a, I: IO<usize>, E: SessionType> Chan<'a, I, E, Eps> {
-    /// Close the channel. Only possible if it's in `Eps` (epsilon) state.
+impl<'a, I: IO<usize>, E: SessionType> Chan<'a, I, E, End> {
+    /// Close the channel. Only possible if it's in the `End` state.
     pub fn close<P: Protocol>(self) -> Defer<P, I> {
         self.0.close();
 
-        let next_func: DeferFunc<I, P, E, Eps> = Dummy::<I, P, E, Eps>::with;
+        let next_func: DeferFunc<I, P, E, End> = Dummy::<I, P, E, End>::with;
 
         Defer(unsafe { mem::transmute(next_func) }, PhantomData, false)
     }

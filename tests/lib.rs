@@ -9,14 +9,14 @@ fn choosing_protocol() {
 
     struct MyProtocol;
 
-    type SendString = Send<String, Eps>;
-    type SendUsize = Send<usize, Eps>;
-    type SendIsize = Send<isize, Eps>;
+    type SendString = Send<String, End>;
+    type SendUsize = Send<usize, End>;
+    type SendIsize = Send<isize, End>;
     type Orig = Choose<SendString, Choose<SendUsize, Finally<SendIsize>>>;
 
-    type DualSendString = Recv<String, Eps>;
-    type DualSendUsize = Recv<usize, Eps>;
-    type DualSendIsize = Recv<isize, Eps>;
+    type DualSendString = Recv<String, End>;
+    type DualSendUsize = Recv<usize, End>;
+    type DualSendIsize = Recv<isize, End>;
     type DualOrig = Accept<DualSendString, Accept<DualSendUsize, Finally<DualSendIsize>>>;
 
     impl Protocol for MyProtocol {
@@ -151,10 +151,10 @@ fn initialize_protocol() {
     struct MyProtocol;
 
     type SendNumber = Send<usize, GetNumber>;
-    type GetNumber = Recv<usize, Eps>;
+    type GetNumber = Recv<usize, End>;
 
     type GetNumberFirst = Recv<usize, SendNumberSecond>;
-    type SendNumberSecond = Send<usize, Eps>;
+    type SendNumberSecond = Send<usize, End>;
 
     impl Protocol for MyProtocol {
         type Initial = SendNumber;
@@ -194,8 +194,8 @@ fn initialize_protocol() {
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, Eps> for MyProtocol {
-        fn with<'a>(this: Chan<'a, I, E, Eps>) -> Defer<Self, I> {
+    impl<I: IO<usize>, E: SessionType> Handler<I, E, End> for MyProtocol {
+        fn with<'a>(this: Chan<'a, I, E, End>) -> Defer<Self, I> {
             this.close()
         }
     }
@@ -208,6 +208,6 @@ fn initialize_protocol() {
     assert_eq!(true, client1.with(&mut io1)); // sends 10 to client2
     assert_eq!(true, client2.with(&mut io2)); // receives 10, sends 10 to client1
     assert_eq!(true, client1.with(&mut io1)); // receives 10 from client2
-    assert_eq!(false, client2.with(&mut io2)); // Eps
-    assert_eq!(false, client1.with(&mut io1)); // Eps
+    assert_eq!(false, client2.with(&mut io2)); // End
+    assert_eq!(false, client1.with(&mut io1)); // End
 }

@@ -1,9 +1,9 @@
 //! Session types encode the current state of a communication channel. It is
 //! not possible to change to another state without following the protocol.
 //!
-//! As an example, if a client is in state `Recv<usize, Eps>`, it cannot
+//! As an example, if a client is in state `Recv<usize, End>`, it cannot
 //! do anything except receive a `usize`. And when it is finished, it will
-//! be in state `Eps`, which means it can do nothing except close the channel.
+//! be in state `End`, which means it can do nothing except close the channel.
 
 mod choose;
 
@@ -23,10 +23,10 @@ pub unsafe trait SessionType {
 
 /// The session is at the end of communication.
 /// The channel can now be gracefully closed.
-pub struct Eps;
+pub struct End;
 
-unsafe impl SessionType for Eps {
-    type Dual = Eps;
+unsafe impl SessionType for End {
+    type Dual = End;
 }
 
 /// The session expects to send `T` and proceed to session `S`.

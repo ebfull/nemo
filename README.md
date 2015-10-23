@@ -21,5 +21,4 @@ Nemo provides an `IO` trait for implementing backends. As an example, nemo provi
 * Modifications may be needed to fully support things like `serde`/`bincode`/`nom`
 * Macros or DSLs need to be implemented to simplify the protocol descriptions
 * [#29205](https://github.com/rust-lang/rust/issues/29205)
-* `Choose/Offer` style session types are not added yet; a clear approach which reduces network overhead must be considered.
 * Heterogeneous selection is not yet available

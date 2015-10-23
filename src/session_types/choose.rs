@@ -41,6 +41,8 @@ trait NotSame { }
 impl NotSame for .. { }
 impl<A> !NotSame for (A, A) { }
 
+/// This trait selects for the de-Bruijn index of a protocol embedded within
+/// a `Choose` decision tree.
 pub trait Chooser<T> {
 	fn num() -> usize;
 }

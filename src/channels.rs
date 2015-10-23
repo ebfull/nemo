@@ -1,3 +1,6 @@
+//! Channels are implementations of `IO` which can be used when building
+//! `Session` and designing protocols.
+
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::mem;
 use super::IO;

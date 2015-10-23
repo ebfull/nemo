@@ -99,7 +99,7 @@ impl<'a, I: IO<A>, A, E: SessionType, S: SessionType> Chan<'a, I, E, Send<A, S>>
     pub fn send(self, a: A) -> Chan<'a, I, E, S> {
         self.0.send(a);
 
-        unsafe { mem::transmute(self) }
+        Chan(self.0, PhantomData)
     }
 }
 
@@ -118,7 +118,7 @@ impl<'a, I: IO<A>, A, E: SessionType, S: SessionType> Chan<'a, I, E, Recv<A, S>>
 impl<'a, I, E: SessionType, S: SessionType> Chan<'a, I, E, Nest<S>> {
     /// Enter into a nested protocol.
     pub fn enter(self) -> Chan<'a, I, (S, E), S> {
-        unsafe { mem::transmute(self) }
+        Chan(self.0, PhantomData)
     }
 }
 

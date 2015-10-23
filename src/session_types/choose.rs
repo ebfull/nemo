@@ -22,7 +22,7 @@ impl<I, E: SessionType, H: Protocol + Handler<I, E, P> + Acceptor<I, E, Q>, P: S
 	}
 }
 impl<I, E: SessionType, H: Protocol + Handler<I, E, P>,                     P: SessionType>                 Acceptor<I, E, Finally<P>>   for H {
-	fn defer(num: u8) -> Defer<H, I> {
+	fn defer(_: u8) -> Defer<H, I> {
 		// regardless of num we cannot proceed further than Finally
 		let next_func: DeferFunc<I, Self, E, P> = <Self as Handler<I, E, P>>::with;
 

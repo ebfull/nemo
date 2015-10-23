@@ -68,6 +68,6 @@ unsafe impl SessionType for () {
     type Dual = ();
 }
 
-unsafe impl<P: SessionType, Q: SessionType> SessionType for (P, Q) {
-    type Dual = (P, Q);
+unsafe impl<S: SessionType, Q: SessionType> SessionType for (S, Q) {
+    type Dual = (S, Q);
 }

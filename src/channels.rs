@@ -35,7 +35,7 @@ impl Blocking {
 }
 
 unsafe impl AbstractIO for Blocking {
-    unsafe fn claim(&mut self, claim: ChannelClaim) {
+    fn claim(&mut self, claim: ChannelClaim) {
         assert!(self.claim.is_none());
 
         self.claim = Some(claim);
@@ -43,22 +43,22 @@ unsafe impl AbstractIO for Blocking {
 }
 
 unsafe impl<T: Send + 'static> IO<T> for Blocking {
-    unsafe fn send(&mut self, obj: T, claim: ChannelClaim) {
+    fn send(&mut self, obj: T, claim: ChannelClaim) {
         assert_eq!(Some(claim), self.claim);
 
-        self.tx.send(mem::transmute(Box::new(obj))).unwrap();
+        self.tx.send(unsafe { mem::transmute(Box::new(obj)) }).unwrap();
     }
 
-    unsafe fn recv(&mut self, claim: ChannelClaim) -> Option<T> {
+    fn recv(&mut self, claim: ChannelClaim) -> Option<T> {
         assert_eq!(Some(claim), self.claim);
 
         let tmp: Box<usize> = self.rx.recv().unwrap();
-        let tmp: Box<T> = mem::transmute(tmp);
+        let tmp: Box<T> = unsafe { mem::transmute(tmp) };
 
         Some(*tmp)
     }
 
-    unsafe fn close(&mut self, claim: ChannelClaim) {
+    fn close(&mut self, claim: ChannelClaim) {
         assert_eq!(Some(claim), self.claim);
 
         // we can close the channel now

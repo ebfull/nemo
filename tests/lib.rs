@@ -23,31 +23,31 @@ fn choosing_protocol() {
         type Initial = Orig;
     }
 
-    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
+    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
         fn with<'a>(this: Chan<'a, I, E, Orig>) -> Defer<Self, I> {
             this.choose::<SendIsize>().send(10).close()
         }
     }
 
-    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
+    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
         fn with<'a>(this: Chan<'a, I, E, DualOrig>) -> Defer<Self, I> {
             this.accept()
         }
     }
 
-    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendString> for MyProtocol {
+    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendString> for MyProtocol {
         fn with<'a>(_: Chan<'a, I, E, DualSendString>) -> Defer<Self, I> {
             panic!("should not have received a string..")
         }
     }
 
-    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendUsize> for MyProtocol {
+    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendUsize> for MyProtocol {
         fn with<'a>(_: Chan<'a, I, E, DualSendUsize>) -> Defer<Self, I> {
             panic!("should not have received a usize..")
         }
     }
 
-    impl<I: IO<u8> + IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendIsize> for MyProtocol {
+    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendIsize> for MyProtocol {
         fn with<'a>(this: Chan<'a, I, E, DualSendIsize>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((msg, sess)) => {

@@ -129,7 +129,7 @@ impl<'a, I, N: Peano, E: SessionType + Pop<N>> Chan<'a, I, E, Escape<N>> {
     }
 }
 
-impl<'a, I: IO<u8>, E: SessionType, P: SessionType> Chan<'a, I, E, P> {
+impl<'a, I: IO<usize>, E: SessionType, P: SessionType> Chan<'a, I, E, P> {
     /// Select a protocol to advance to.
     pub fn choose<S: SessionType>(self) -> Chan<'a, I, E, S> where P: Chooser<S> {
         self.0.send(P::num());
@@ -138,7 +138,7 @@ impl<'a, I: IO<u8>, E: SessionType, P: SessionType> Chan<'a, I, E, P> {
     }
 }
 
-impl<'a, I: IO<u8>, E: SessionType, S: SessionType, Q: SessionType> Chan<'a, I, E, Accept<S, Q>> {
+impl<'a, I: IO<usize>, E: SessionType, S: SessionType, Q: SessionType> Chan<'a, I, E, Accept<S, Q>> {
     /// Accept one of many protocols and advance to its handler.
     pub fn accept<P: Protocol + Handler<I, E, Accept<S, Q>> + Acceptor<I, E, Accept<S, Q>>>(self) -> Defer<P, I> {
         match self.0.recv() {

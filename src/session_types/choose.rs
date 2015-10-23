@@ -8,10 +8,10 @@ use protocol::{Protocol, Handler, Defer, DeferFunc};
 /// protocol must handle `P` *and* be an `Acceptor` of `Q`. If `T` is 
 /// a `Finally<P>` it must handle `P`.
 pub trait Acceptor<I, E, T>: Protocol + Sized {
-	fn defer(u8) -> Defer<Self, I>;
+	fn defer(usize) -> Defer<Self, I>;
 }
 impl<I, E: SessionType, H: Protocol + Handler<I, E, P> + Acceptor<I, E, Q>, P: SessionType, Q: SessionType> Acceptor<I, E, Accept<P, Q>> for H {
-	fn defer(num: u8) -> Defer<H, I> {
+	fn defer(num: usize) -> Defer<H, I> {
 		if num == 0 {
 			let next_func: DeferFunc<I, Self, E, P> = <Self as Handler<I, E, P>>::with;
 
@@ -22,7 +22,7 @@ impl<I, E: SessionType, H: Protocol + Handler<I, E, P> + Acceptor<I, E, Q>, P: S
 	}
 }
 impl<I, E: SessionType, H: Protocol + Handler<I, E, P>,                     P: SessionType>                 Acceptor<I, E, Finally<P>>   for H {
-	fn defer(_: u8) -> Defer<H, I> {
+	fn defer(_: usize) -> Defer<H, I> {
 		// regardless of num we cannot proceed further than Finally
 		let next_func: DeferFunc<I, Self, E, P> = <Self as Handler<I, E, P>>::with;
 
@@ -42,21 +42,21 @@ impl NotSame for .. { }
 impl<A> !NotSame for (A, A) { }
 
 pub trait Chooser<T> {
-	fn num() -> u8;
+	fn num() -> usize;
 }
 
 impl<P: SessionType, Q: SessionType> Chooser<P> for Choose<P, Q> {
-	fn num() -> u8 { 0 }
+	fn num() -> usize { 0 }
 }
 
 impl<P: SessionType> Chooser<P> for Finally<P> {
-	fn num() -> u8 { 0 }
+	fn num() -> usize { 0 }
 }
 
 impl<P: SessionType, S: SessionType, Q: SessionType + Chooser<S>> Chooser<S> for Choose<P, Q>
 	where (S, P): NotSame
 {
-	fn num() -> u8 { 1 + Q::num() }
+	fn num() -> usize { Q::num().checked_add(1).unwrap() }
 }
 
 /// Accept either `P` or something in `Q`.

@@ -52,6 +52,42 @@ macro_rules! proto {
 	(Accept { $p:tt }) => (Finally<proto!($p)>);
 }
 
+#[macro_export]
+macro_rules! handlers {
+    (@final_entry $t:ty => $($rest:tt)*) => (handlers!(@final_entry $($rest)*));
+    (@final_entry $t:ty) => ($t);
+    (@nested_env $prev:ty, $cur:ty => $($rest:tt)*) => (handlers!(@nested_env ($cur, $prev), $($rest)*));
+    (@nested_env $prev:ty, $cur:ty) => ($prev);
+    (
+        $protocol:ident ($($impl_bound:ty),*);
+        $chan:ident($($environment:tt)*) => $b:block
+    ) => (
+        impl<I: IO, E> Handler<I, handlers!(@nested_env E, $($environment)*), handlers!(@final_entry $($environment)*)> for $protocol
+            where $(I: Transfers<$impl_bound>, )* E: SessionType
+        {
+            fn with($chan: Channel<Self, I, handlers!(@nested_env E, $($environment)*), handlers!(@final_entry $($environment)*)>) -> Defer<Self, I> {
+                $b
+            }
+        }
+    );
+    (
+        $protocol:ident ($($impl_bound:ty),*);
+        $chan:ident($($environment:tt)*) => $b:block
+
+        $($rest:tt)*
+    ) => (
+        handlers!(
+            $protocol($($impl_bound),*);
+            $chan($($environment)*) => $b
+        );
+
+        handlers!(
+            $protocol($($impl_bound),*);
+            $($rest)*
+        );
+    );
+}
+
 pub use protocol::{Channel, Defer, Protocol, Handler, channel, channel_dual};
 
 pub unsafe trait IO {

@@ -13,9 +13,8 @@ struct Atm {
     balance: u64
 }
 
-type Id = String;
 type AtmProtocol = proto!(
-    Recv Id, // get the account id
+    Recv String, // get the account id
     loop {
         goto AtmMenu
     }
@@ -24,12 +23,11 @@ type AtmProtocol = proto!(
 type AtmMenu = proto!(
     Accept {
         {goto AtmDeposit}, // user wants to deposit
+        {goto AtmWithdraw}, // user wants to withdraw
+        {goto AtmGetBalance}, // user wants to get balance
         End // user is done
     }
 );
-
-//        {goto AtmWithdraw}, // user wants to withdraw
-//        {goto AtmGetBalance}, // user wants to get balance
 
 type AtmDeposit = proto!(
     Recv u64, // get the amount they're depositing
@@ -48,6 +46,59 @@ type AtmGetBalance = proto!(
     continue 0
 );
 
+impl Protocol for Atm {
+    type Initial = AtmProtocol;
+}
+
+handlers!(
+    Atm(String, u64, bool);
+
+    this(AtmMenu => End) => {
+        this.close()
+    }
+
+    this(AtmMenu => AtmGetBalance) => {
+        let cur_balance = this.proto.balance;
+        this.send(cur_balance).pop().accept().ok().unwrap()
+    }
+
+    this(AtmMenu => AtmDeposit) => {
+        match this.recv() {
+            Ok((amt, mut this)) => {
+                this.proto.balance += amt;
+                let new_balance = this.proto.balance;
+                this.send(new_balance).pop().accept().ok().unwrap()
+            },
+            _ => panic!("Client unexpectedly dropped")
+        }
+    }
+
+    this(AtmMenu => AtmWithdraw) => {
+        match this.recv() {
+            Ok((amt, mut this)) => {
+                if this.proto.balance < amt {
+                    this.send(false)
+                } else {
+                    this.proto.balance -= amt;
+                    this.send(true)
+                }.pop().accept().ok().unwrap()
+            },
+            _ => panic!("Client unexpectedly dropped")
+        }
+    }
+
+    this(AtmProtocol) => {
+        match this.recv() {
+            Ok((_, this)) => {
+                this.enter().accept().ok().unwrap()
+            },
+            Err(_) => {
+                panic!("Client unexpectedly dropped");
+            }
+        }
+    }
+);
+
 fn main() {
     use std::thread;
     use nemo::channels::Blocking;
@@ -56,63 +107,17 @@ fn main() {
         balance: 0
     };
 
-    impl Protocol for Atm {
-        type Initial = AtmProtocol;
-    }
-
     let (server, client) = Blocking::new(bank, bank);
 
-    impl<I: Transfers<String> + Transfers<u64> + Transfers<bool>, E: SessionType> Handler<I, (AtmMenu, E), End> for Atm {
-        fn with(this: Channel<Self, I, (AtmMenu, E), End>) -> Defer<Self, I> {
-            this.close()
-        }
-    }
-
-    impl<I: Transfers<String> + Transfers<u64> + Transfers<bool>, E: SessionType> Handler<I, (AtmMenu, E), AtmDeposit> for Atm {
-        fn with(this: Channel<Self, I, (AtmMenu, E), AtmDeposit>) -> Defer<Self, I> {
-            match this.recv() {
-                Ok((amt, mut this)) => {
-                    this.proto.balance += amt;
-                    let new_balance = this.proto.balance;
-                    this.send(new_balance).pop().accept().ok().unwrap()
-                },
-                _ => panic!("Client unexpectedly dropped")
-            }
-        }
-    }
-
-    impl<I: Transfers<String> + Transfers<u64> + Transfers<bool>, E: SessionType> Handler<I, E, AtmProtocol> for Atm {
-        fn with(this: Channel<Self, I, E, AtmProtocol>) -> Defer<Self, I> {
-            match this.recv() {
-                Ok((_, this)) => {
-                    this.enter().accept().ok().unwrap()
-                },
-                Err(_) => {
-                    panic!("Client unexpectedly dropped");
-                }
-            }
-        }
-    }
-
     thread::spawn(move || {
-        let mut server = server.defer();
-        loop {
-            if !server.with() {
-                break;
-            }
-        }
-    });
-
-    thread::spawn(move || {
-        match client.send("Sean".to_string())
+        match client.send("Sean".into())
                     .enter()
                     .choose::<<AtmDeposit as SessionType>::Dual>()
                     .send(100)
                     .recv() {
                         Ok((worked, client)) => {
-                            client.pop().choose::<End>().close();
                             assert_eq!(worked, 100);
-                            println!("Client finished. It was a success.");
+                            client.pop().choose::<End>().close();
                         },
                         Err(_) => {
                             panic!("Server unexpectedly dropped");
@@ -120,5 +125,10 @@ fn main() {
                     }
     });
 
-    loop { }
+    let mut server = server.defer();
+    loop {
+        if !server.with() {
+            break;
+        }
+    }
 }

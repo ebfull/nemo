@@ -14,13 +14,21 @@ pub trait Protocol {
 /// Handlers must return `Defer` to indicate to the `Session` how to proceed in
 /// the future. `Defer` can be obtained by calling `.defer()` on the channel, or
 /// by calling `.close()` when the session is `End`.
-pub struct Defer<P: Protocol, I>(DeferFunc<P, I, (), ()>, PhantomData<P>, bool);
+pub struct Defer<P: Protocol, I> {
+    func: DeferFunc<P, I, (), ()>,
+    open: bool,
+    _marker: PhantomData<P>
+}
 
 impl<P: Protocol, I> Defer<P, I> {
     pub fn new(next: DeferFunc<P, I, (), ()>, open: bool)
                -> Defer<P, I>
     {
-        Defer(next, PhantomData, open)
+        Defer {
+            func: next,
+            open: open,
+            _marker: PhantomData
+        }
     }
 }
 
@@ -28,11 +36,11 @@ impl<P: Protocol, I> Defer<P, I> {
     pub fn with<'a>(&mut self, io: &'a mut I) -> bool {
         let p: Channel<'a, P, I, (), ()> = Channel(io, PhantomData);
 
-        let new = (self.0)(p);
-        self.0 = new.0;
-        self.2 = new.2;
+        let new = (self.func)(p);
+        self.func = new.func;
+        self.open = new.open;
 
-        self.2
+        self.open
     }
 }
 
@@ -68,7 +76,7 @@ impl<'a, I, E: SessionType, S: SessionType, P: Handler<I, E, S>> Channel<'a, P, 
     pub fn defer(self) -> Defer<P, I> {
         let next_func: DeferFunc<P, I, E, S> = Handler::<I, E, S>::with;
 
-        Defer(unsafe { mem::transmute(next_func) }, PhantomData, true)
+        Defer::new(unsafe { mem::transmute(next_func) }, true)
     }
 }
 
@@ -79,7 +87,7 @@ impl<'a, I: IO, E: SessionType, P: Protocol> Channel<'a, P, I, E, End> {
 
         let next_func: DeferFunc<P, I, E, End> = Dummy::<P, I, E, End>::with;
 
-        Defer(unsafe { mem::transmute(next_func) }, PhantomData, false)
+        Defer::new(unsafe { mem::transmute(next_func) }, false)
     }
 }
 

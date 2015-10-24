@@ -43,6 +43,7 @@ macro_rules! proto {
 	(Send $t:ty, $($rest:tt)*) => (Send<$t, proto!($($rest)*)>);
 	(loop { $($rest:tt)* }) => (Nest<proto!($($rest)*)>);
 	(continue $p:tt) => (Escape<peano!($p)>);
+	(goto $p:ty) => ($p);
 	(End) => (End);
 	({$($rest:tt)*}) => (proto!($($rest)*));
 	(Choose { $p:tt, $($rest:tt)*}) => (Choose<proto!($p), proto!(Choose {$($rest)*})>);

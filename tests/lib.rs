@@ -10,6 +10,8 @@ use nemo::peano::*;
 fn test_proto_macro() {
     use std::marker::PhantomData;
 
+    type MyAlias = Recv<usize, End>;
+
     fn get<T>() -> PhantomData<T> { PhantomData }
 
     macro_rules! same {
@@ -150,6 +152,9 @@ fn test_proto_macro() {
             }
         }
     ));
+
+
+    same!(Recv<usize, End> = proto!(goto MyAlias));
 }
 
 #[test]

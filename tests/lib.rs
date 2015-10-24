@@ -23,32 +23,32 @@ fn choosing_protocol() {
         type Initial = Orig;
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, E, Orig>) -> Defer<Self, I> {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
+        fn with(this: Channel<Self, I, E, Orig>) -> Defer<Self, I> {
             this.choose::<SendIsize>().send(10).close()
         }
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, E, DualOrig>) -> Defer<Self, I> {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
+        fn with(this: Channel<Self, I, E, DualOrig>) -> Defer<Self, I> {
             this.accept()
         }
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendString> for MyProtocol {
-        fn with<'a>(_: Channel<'a, Self, I, E, DualSendString>) -> Defer<Self, I> {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualSendString> for MyProtocol {
+        fn with(_: Channel<Self, I, E, DualSendString>) -> Defer<Self, I> {
             panic!("should not have received a string..")
         }
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendUsize> for MyProtocol {
-        fn with<'a>(_: Channel<'a, Self, I, E, DualSendUsize>) -> Defer<Self, I> {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualSendUsize> for MyProtocol {
+        fn with(_: Channel<Self, I, E, DualSendUsize>) -> Defer<Self, I> {
             panic!("should not have received a usize..")
         }
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendIsize> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, E, DualSendIsize>) -> Defer<Self, I> {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualSendIsize> for MyProtocol {
+        fn with(this: Channel<Self, I, E, DualSendIsize>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((msg, sess)) => {
                     assert_eq!(msg, 10);
@@ -62,13 +62,13 @@ fn choosing_protocol() {
         }
     }
 
-    let (mut io1, mut io2) = Blocking::new();
+    let (io1, io2) = Blocking::new();
 
-    let mut client1: Defer<MyProtocol, Blocking> = channel(&mut io1).defer();
-    let mut client2: Defer<MyProtocol, Blocking> = channel_dual(&mut io2).defer();
-    assert_eq!(false, client1.with(&mut io1)); // client1 chooses a protocol, sends 10, closes channel
-    assert_eq!(true, client2.with(&mut io2)); // client2 accepts the protocol, defers
-    assert_eq!(false, client2.with(&mut io2)); // client2 receives the isize, asserts it's 10, closes channel
+    let mut client1: Defer<MyProtocol, Blocking> = channel(io1).defer();
+    let mut client2: Defer<MyProtocol, Blocking> = channel_dual(io2).defer();
+    assert_eq!(false, client1.with()); // client1 chooses a protocol, sends 10, closes channel
+    assert_eq!(true, client2.with()); // client2 accepts the protocol, defers
+    assert_eq!(false, client2.with()); // client2 receives the isize, asserts it's 10, closes channel
 }
 
 #[test]
@@ -88,20 +88,20 @@ fn recursive_protocol() {
         type Initial = Orig;
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, E, Orig>) -> Defer<Self, I> {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
+        fn with(this: Channel<Self, I, E, Orig>) -> Defer<Self, I> {
             this.enter().defer()
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, (OrigEntered, E), OrigEntered> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, (OrigEntered, E), OrigEntered>) -> Defer<Self, I> {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, (OrigEntered, E), OrigEntered> for MyProtocol {
+        fn with(this: Channel<Self, I, (OrigEntered, E), OrigEntered>) -> Defer<Self, I> {
             this.send(10).defer()
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, (OrigEntered, E), AwaitingNumber> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, (OrigEntered, E), AwaitingNumber>) -> Defer<Self, I> {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, (OrigEntered, E), AwaitingNumber> for MyProtocol {
+        fn with(this: Channel<Self, I, (OrigEntered, E), AwaitingNumber>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((msg, this)) => {
                     assert_eq!(msg, 20);
@@ -112,14 +112,14 @@ fn recursive_protocol() {
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, E, DualOrig>) -> Defer<Self, I> {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
+        fn with(this: Channel<Self, I, E, DualOrig>) -> Defer<Self, I> {
             this.enter().defer()
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, (DualOrigEntered, E), DualOrigEntered> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, (DualOrigEntered, E), DualOrigEntered>) -> Defer<Self, I> {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, (DualOrigEntered, E), DualOrigEntered> for MyProtocol {
+        fn with(this: Channel<Self, I, (DualOrigEntered, E), DualOrigEntered>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((msg, this)) => {
                     assert_eq!(msg, 10);
@@ -130,18 +130,18 @@ fn recursive_protocol() {
         }
     }
 
-    let (mut io1, mut io2) = Blocking::new();
+    let (io1, io2) = Blocking::new();
 
-    let mut client1: Defer<MyProtocol, Blocking> = channel(&mut io1).defer();
-    let mut client2: Defer<MyProtocol, Blocking> = channel_dual(&mut io2).defer();
+    let mut client1: Defer<MyProtocol, Blocking> = channel(io1).defer();
+    let mut client2: Defer<MyProtocol, Blocking> = channel_dual(io2).defer();
 
-    assert_eq!(true, client1.with(&mut io1)); // enters nesting
-    assert_eq!(true, client1.with(&mut io1)); // sends 10 to client2
-    assert_eq!(true, client2.with(&mut io2)); // enters nesting
-    assert_eq!(true, client2.with(&mut io2)); // receives 10 from client1, sends back 20, pops out of nesting
-    assert_eq!(true, client1.with(&mut io1)); // receives 20 from client2, pops out of nesting
-    assert_eq!(true, client1.with(&mut io1)); // sends 10 to client2
-    assert_eq!(true, client2.with(&mut io2)); // receives 10 from client1
+    assert_eq!(true, client1.with()); // enters nesting
+    assert_eq!(true, client1.with()); // sends 10 to client2
+    assert_eq!(true, client2.with()); // enters nesting
+    assert_eq!(true, client2.with()); // receives 10 from client1, sends back 20, pops out of nesting
+    assert_eq!(true, client1.with()); // receives 20 from client2, pops out of nesting
+    assert_eq!(true, client1.with()); // sends 10 to client2
+    assert_eq!(true, client2.with()); // receives 10 from client1
 }
 
 
@@ -161,8 +161,8 @@ fn initialize_protocol() {
         type Initial = SendNumber;
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, GetNumber> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, E, GetNumber>) -> Defer<Self, I> {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, GetNumber> for MyProtocol {
+        fn with(this: Channel<Self, I, E, GetNumber>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((msg, session)) => {
                     assert_eq!(msg, 20);
@@ -175,8 +175,8 @@ fn initialize_protocol() {
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, GetNumberFirst> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, E, GetNumberFirst>) -> Defer<Self, I> {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, GetNumberFirst> for MyProtocol {
+        fn with(this: Channel<Self, I, E, GetNumberFirst>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((msg, session)) => {
                     assert_eq!(msg, 10);
@@ -189,26 +189,26 @@ fn initialize_protocol() {
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, SendNumber> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, E, SendNumber>) -> Defer<Self, I> {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, SendNumber> for MyProtocol {
+        fn with(this: Channel<Self, I, E, SendNumber>) -> Defer<Self, I> {
             this.send(10).defer()
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, End> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, E, End>) -> Defer<Self, I> {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, End> for MyProtocol {
+        fn with(this: Channel<Self, I, E, End>) -> Defer<Self, I> {
             this.close()
         }
     }
 
-    let (mut io1, mut io2) = Blocking::new();
+    let (io1, io2) = Blocking::new();
 
-    let mut client1: Defer<MyProtocol, Blocking> = channel(&mut io1).defer();
-    let mut client2: Defer<MyProtocol, Blocking> = channel_dual(&mut io2).defer();
+    let mut client1: Defer<MyProtocol, Blocking> = channel(io1).defer();
+    let mut client2: Defer<MyProtocol, Blocking> = channel_dual(io2).defer();
 
-    assert_eq!(true, client1.with(&mut io1)); // sends 10 to client2
-    assert_eq!(true, client2.with(&mut io2)); // receives 10, sends 10 to client1
-    assert_eq!(true, client1.with(&mut io1)); // receives 10 from client2
-    assert_eq!(false, client2.with(&mut io2)); // End
-    assert_eq!(false, client1.with(&mut io1)); // End
+    assert_eq!(true, client1.with()); // sends 10 to client2
+    assert_eq!(true, client2.with()); // receives 10, sends 10 to client1
+    assert_eq!(true, client1.with()); // receives 10 from client2
+    assert_eq!(false, client2.with()); // End
+    assert_eq!(false, client1.with()); // End
 }

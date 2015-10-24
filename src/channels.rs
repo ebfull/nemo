@@ -32,19 +32,29 @@ impl Blocking {
 }
 
 unsafe impl IO for Blocking {
-    fn close(&mut self) {
+    unsafe fn close(&mut self) {
         // we can close the channel now
+    }
+
+    /// Send a variable length integer over the channel.
+    unsafe fn send_varint(&mut self, num: usize) {
+        self.send(num)
+    }
+
+    /// Receive a variable length integer from the channel.
+    unsafe fn recv_varint(&mut self) -> Option<usize> {
+        self.recv()
     }
 }
 
 unsafe impl<T: Send + 'static> Transfers<T> for Blocking {
-    fn send(&mut self, obj: T) {
-        self.tx.send(unsafe { mem::transmute(Box::new(obj)) }).unwrap();
+    unsafe fn send(&mut self, obj: T) {
+        self.tx.send(mem::transmute(Box::new(obj))).unwrap();
     }
 
-    fn recv(&mut self) -> Option<T> {
+    unsafe fn recv(&mut self) -> Option<T> {
         let tmp: Box<usize> = self.rx.recv().unwrap();
-        let tmp: Box<T> = unsafe { mem::transmute(tmp) };
+        let tmp: Box<T> = mem::transmute(tmp);
 
         Some(*tmp)
     }

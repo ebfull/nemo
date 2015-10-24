@@ -24,7 +24,13 @@ pub use protocol::{Channel, Defer, Protocol, Handler, channel, channel_dual};
 
 pub unsafe trait IO {
 	/// Closes the channel.
-    fn close(&mut self);
+    unsafe fn close(&mut self);
+
+    /// Send a variable length integer over the channel.
+    unsafe fn send_varint(&mut self, usize);
+
+    /// Receive a variable length integer from the channel.
+    unsafe fn recv_varint(&mut self) -> Option<usize>;
 }
 
 /// This trait describes a backend for a channel to expose a message
@@ -33,9 +39,9 @@ pub unsafe trait IO {
 /// the backing channel to be modified outside of this trait.
 pub unsafe trait Transfers<T>: IO {
     /// Sends an object from the handler to the outside channel.
-    fn send(&mut self, T);
+    unsafe fn send(&mut self, T);
 
     /// Attempts to retrieve an object from the outside channel. This *can* block
     /// but it also might not, depending on the impl.
-    fn recv(&mut self) -> Option<T>;
+    unsafe fn recv(&mut self) -> Option<T>;
 }

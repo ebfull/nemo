@@ -86,7 +86,7 @@ impl<I, E: SessionType, S: SessionType, P: Handler<I, E, S>> Channel<P, I, E, S>
 impl<I: IO, E: SessionType, P: Protocol> Channel<P, I, E, End> {
     /// Close the channel. Only possible if it's in the `End` state.
     pub fn close(mut self) -> Defer<P, I> {
-        self.0.close();
+        unsafe { self.0.close() };
 
         let next_func: DeferFunc<P, I, E, End> = Dummy::<P, I, E, End>::with;
 
@@ -97,7 +97,7 @@ impl<I: IO, E: SessionType, P: Protocol> Channel<P, I, E, End> {
 impl<I: Transfers<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<P, I, E, Send<T, S>> {
     /// Send a `T` to IO.
     pub fn send(mut self, a: T) -> Channel<P, I, E, S> {
-        self.0.send(a);
+        unsafe { self.0.send(a) };
 
         Channel(self.0, PhantomData)
     }
@@ -106,7 +106,7 @@ impl<I: Transfers<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<P,
 impl<I: Transfers<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<P, I, E, Recv<T, S>> {
     /// Receive a `T` from IO.
     pub fn recv(mut self) -> Result<(T, Channel<P, I, E, S>), Self> {
-        match self.0.recv() {
+        match unsafe { self.0.recv() } {
             Some(res) => Ok((res, Channel(self.0, PhantomData))),
             None => {
                 Err(self)
@@ -129,16 +129,16 @@ impl<I, N: Peano, E: SessionType + Pop<N>, P: Protocol> Channel<P, I, E, Escape<
     }
 }
 
-impl<I: Transfers<usize>, E: SessionType, R: SessionType, P: Protocol> Channel<P, I, E, R> {
+impl<I: IO, E: SessionType, R: SessionType, P: Protocol> Channel<P, I, E, R> {
     /// Select a protocol to advance to.
     pub fn choose<S: SessionType>(mut self) -> Channel<P, I, E, S> where R: Chooser<S> {
-        self.0.send(R::num());
+        unsafe { self.0.send_varint(R::num()); }
 
         Channel(self.0, PhantomData)
     }
 }
 
-impl<I: Transfers<usize>, // Our IO must be capable of sending a usize
+impl<I: IO, // Our IO
          E: SessionType, // Our current environment
          S: SessionType, // The first branch of our accepting session
          Q: SessionType, // The second branch of our accepting session
@@ -147,7 +147,7 @@ impl<I: Transfers<usize>, // Our IO must be capable of sending a usize
     > Channel<P, I, E, Accept<S, Q>> {
     /// Accept one of many protocols and advance to its handler.
     pub fn accept(mut self) -> Defer<P, I> {
-        match self.0.recv() {
+        match unsafe { self.0.recv_varint() } {
             Some(num) => {
                 <P as Acceptor<I, E, Accept<S, Q>>>::defer(self.0, num)
             },

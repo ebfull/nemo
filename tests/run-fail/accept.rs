@@ -32,7 +32,7 @@ fn main() {
 
     impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
         fn with(this: Channel<Self, I, E, DualOrig>) -> Defer<Self, I> {
-            this.accept()
+            this.accept().ok().unwrap()
         }
     }
 

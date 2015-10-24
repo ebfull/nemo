@@ -160,17 +160,16 @@ impl<I: IO, // Our IO
          E: SessionType, // Our current environment
          S: SessionType, // The first branch of our accepting session
          Q: SessionType, // The second branch of our accepting session
-         P: Handler<I, E, Accept<S, Q>> // We must be able to handle our current state
-            + Acceptor<I, E, Accept<S, Q>> // And we must be able to "accept" with our current state
+         P: Acceptor<I, E, Accept<S, Q>> // We must be able to "accept" with our current state
     > Channel<P, I, E, Accept<S, Q>> {
     /// Accept one of many protocols and advance to its handler.
-    pub fn accept(mut self) -> Defer<P, I> {
+    pub fn accept(mut self) -> Result<Defer<P, I>, Channel<P, I, E, Accept<S, Q>>> {
         match unsafe { self.io.recv_varint() } {
             Some(num) => {
-                <P as Acceptor<I, E, Accept<S, Q>>>::defer(self, num)
+                Ok(<P as Acceptor<I, E, Accept<S, Q>>>::defer(self, num))
             },
             None => {
-                self.defer()
+                Err(self)
             }
         }
     }

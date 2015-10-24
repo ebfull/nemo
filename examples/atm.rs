@@ -68,20 +68,13 @@ fn main() {
         }
     }
 
-    // TODO: this is dumb
-    impl<I: Transfers<String> + Transfers<u64> + Transfers<bool>, E: SessionType> Handler<I, (AtmMenu, E), AtmMenu> for Atm {
-        fn with(this: Channel<Self, I, (AtmMenu, E), AtmMenu>) -> Defer<Self, I> {
-            this.accept()
-        }
-    }
-
     impl<I: Transfers<String> + Transfers<u64> + Transfers<bool>, E: SessionType> Handler<I, (AtmMenu, E), AtmDeposit> for Atm {
         fn with(this: Channel<Self, I, (AtmMenu, E), AtmDeposit>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((amt, mut this)) => {
                     this.proto.balance += amt;
                     let new_balance = this.proto.balance;
-                    this.send(new_balance).pop().defer()
+                    this.send(new_balance).pop().accept().ok().unwrap()
                 },
                 _ => panic!("Client unexpectedly dropped")
             }
@@ -91,8 +84,8 @@ fn main() {
     impl<I: Transfers<String> + Transfers<u64> + Transfers<bool>, E: SessionType> Handler<I, E, AtmProtocol> for Atm {
         fn with(this: Channel<Self, I, E, AtmProtocol>) -> Defer<Self, I> {
             match this.recv() {
-                Ok((msg, this)) => {
-                    this.enter().accept()
+                Ok((_, this)) => {
+                    this.enter().accept().ok().unwrap()
                 },
                 Err(_) => {
                     panic!("Client unexpectedly dropped");
@@ -121,7 +114,7 @@ fn main() {
                             assert_eq!(worked, 100);
                             println!("Client finished. It was a success.");
                         },
-                        Err(client) => {
+                        Err(_) => {
                             panic!("Server unexpectedly dropped");
                         }
                     }

@@ -7,11 +7,11 @@ use protocol::{Channel, Protocol, Handler, Defer, DeferFunc};
 /// additionally handle other types. If `T` is an `Accept<S, Q>` the
 /// protocol must handle `S` *and* be an `Acceptor` of `Q`. If `T` is 
 /// a `Finally<S>` it must handle `S`.
-pub trait Acceptor<I, E, T>: Protocol + Sized {
-	fn defer<X: SessionType, Y: SessionType>(chan: Channel<Self, I, X, Y>, usize) -> Defer<Self, I>;
+pub trait Acceptor<I, E: SessionType, T>: Protocol + Sized {
+	fn defer<Y: SessionType>(chan: Channel<Self, I, E, Y>, usize) -> Defer<Self, I>;
 }
 impl<I, E: SessionType, H: Protocol + Handler<I, E, S> + Acceptor<I, E, Q>, S: SessionType, Q: SessionType> Acceptor<I, E, Accept<S, Q>> for H {
-	fn defer<X: SessionType, Y: SessionType>(chan: Channel<Self, I, X, Y>, num: usize) -> Defer<H, I> {
+	fn defer<Y: SessionType>(chan: Channel<Self, I, E, Y>, num: usize) -> Defer<H, I> {
 		if num == 0 {
 			let next_func: DeferFunc<Self, I, E, S> = <Self as Handler<I, E, S>>::with;
 
@@ -22,7 +22,7 @@ impl<I, E: SessionType, H: Protocol + Handler<I, E, S> + Acceptor<I, E, Q>, S: S
 	}
 }
 impl<I, E: SessionType, H: Protocol + Handler<I, E, S>,                     S: SessionType>                 Acceptor<I, E, Finally<S>>   for H {
-	fn defer<X: SessionType, Y: SessionType>(chan: Channel<Self, I, X, Y>, _: usize) -> Defer<H, I> {
+	fn defer<Y: SessionType>(chan: Channel<Self, I, E, Y>, _: usize) -> Defer<H, I> {
 		// regardless of num we cannot proceed further than Finally
 		let next_func: DeferFunc<Self, I, E, S> = <Self as Handler<I, E, S>>::with;
 

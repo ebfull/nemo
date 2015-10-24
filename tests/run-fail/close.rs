@@ -18,13 +18,13 @@ fn main() {
     }
 
     impl<I: Transfers<usize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, E, Orig>) -> Defer<Self, I> {
+        fn with(this: Channel<Self, I, E, Orig>) -> Defer<Self, I> {
             this.send(10).defer()
         }
     }
 
     impl<I: Transfers<usize>, E: SessionType> Handler<I, E, Recv<usize, End>> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, E, Recv<usize, End>>) -> Defer<Self, I> {
+        fn with(this: Channel<Self, I, E, Recv<usize, End>>) -> Defer<Self, I> {
             match this.recv() {
             	Ok((msg, this)) => {
             		assert_eq!(msg, 15);
@@ -41,7 +41,7 @@ fn main() {
     }
 
     impl<I: Transfers<usize>, E: SessionType> Handler<I, E, Other> for MyProtocol {
-        fn with<'a>(this: Channel<'a, Self, I, E, Other>) -> Defer<Self, I> {
+        fn with(this: Channel<Self, I, E, Other>) -> Defer<Self, I> {
             match this.recv() {
             	Ok((msg, this)) => {
             		assert_eq!(msg, 10);
@@ -55,12 +55,12 @@ fn main() {
         }
     }
 
-    let (mut io1, mut io2) = Blocking::new();
+    let (io1, io2) = Blocking::new();
 
-    let mut client1: Defer<MyProtocol, Blocking> = channel(&mut io1).defer();
-    let mut client2: Defer<MyProtocol, Blocking> = channel_dual(&mut io2).defer();
+    let mut client1: Defer<MyProtocol, Blocking> = channel(io1).defer();
+    let mut client2: Defer<MyProtocol, Blocking> = channel_dual(io2).defer();
 
-    assert_eq!(true, client1.with(&mut io1)); // send 10
-    assert_eq!(false, client2.with(&mut io2)); // recv 10, send 15, close
-    assert_eq!(false, client1.with(&mut io1)); // recv 15, panic "Worked!"
+    assert_eq!(true, client1.with()); // send 10
+    assert_eq!(false, client2.with()); // recv 10, send 15, close
+    assert_eq!(false, client1.with()); // recv 15, panic "Worked!"
 }

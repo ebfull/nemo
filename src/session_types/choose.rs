@@ -8,25 +8,25 @@ use protocol::{Protocol, Handler, Defer, DeferFunc};
 /// protocol must handle `S` *and* be an `Acceptor` of `Q`. If `T` is 
 /// a `Finally<S>` it must handle `S`.
 pub trait Acceptor<I, E, T>: Protocol + Sized {
-	fn defer(usize) -> Defer<Self, I>;
+	fn defer(I, usize) -> Defer<Self, I>;
 }
 impl<I, E: SessionType, H: Protocol + Handler<I, E, S> + Acceptor<I, E, Q>, S: SessionType, Q: SessionType> Acceptor<I, E, Accept<S, Q>> for H {
-	fn defer(num: usize) -> Defer<H, I> {
+	fn defer(io: I, num: usize) -> Defer<H, I> {
 		if num == 0 {
 			let next_func: DeferFunc<Self, I, E, S> = <Self as Handler<I, E, S>>::with;
 
-			Defer::new(unsafe { mem::transmute(next_func) }, true)
+			Defer::new(io, unsafe { mem::transmute(next_func) }, true)
 		} else {
-			<Self as Acceptor<I, E, Q>>::defer(num - 1)
+			<Self as Acceptor<I, E, Q>>::defer(io, num - 1)
 		}
 	}
 }
 impl<I, E: SessionType, H: Protocol + Handler<I, E, S>,                     S: SessionType>                 Acceptor<I, E, Finally<S>>   for H {
-	fn defer(_: usize) -> Defer<H, I> {
+	fn defer(io: I, _: usize) -> Defer<H, I> {
 		// regardless of num we cannot proceed further than Finally
 		let next_func: DeferFunc<Self, I, E, S> = <Self as Handler<I, E, S>>::with;
 
-		Defer::new(unsafe { mem::transmute(next_func) }, true)
+		Defer::new(io, unsafe { mem::transmute(next_func) }, true)
 	}
 }
 

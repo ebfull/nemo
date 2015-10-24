@@ -22,11 +22,12 @@ pub struct Defer<P: Protocol, I> {
 }
 
 impl<P: Protocol, I> Defer<P, I> {
-    pub fn new(io: I, next: DeferFunc<P, I, (), ()>, open: bool)
+    #[doc(hidden)]
+    pub fn new<X: SessionType, Y: SessionType>(chan: Channel<P, I, X, Y>, next: DeferFunc<P, I, (), ()>, open: bool)
                -> Defer<P, I>
     {
         Defer {
-            io: Some(io),
+            io: Some(chan.io),
             func: next,
             open: open,
             _marker: PhantomData
@@ -91,7 +92,7 @@ impl<I, E: SessionType, S: SessionType, P: Handler<I, E, S>> Channel<P, I, E, S>
     pub fn defer(self) -> Defer<P, I> {
         let next_func: DeferFunc<P, I, E, S> = Handler::<I, E, S>::with;
 
-        Defer::new(self.io, unsafe { mem::transmute(next_func) }, true)
+        Defer::new(self, unsafe { mem::transmute(next_func) }, true)
     }
 }
 
@@ -102,7 +103,7 @@ impl<I: IO, E: SessionType, P: Protocol> Channel<P, I, E, End> {
 
         let next_func: DeferFunc<P, I, E, End> = Dummy::<P, I, E, End>::with;
 
-        Defer::new(self.io, unsafe { mem::transmute(next_func) }, false)
+        Defer::new(self, unsafe { mem::transmute(next_func) }, false)
     }
 }
 
@@ -161,7 +162,7 @@ impl<I: IO, // Our IO
     pub fn accept(mut self) -> Defer<P, I> {
         match unsafe { self.io.recv_varint() } {
             Some(num) => {
-                <P as Acceptor<I, E, Accept<S, Q>>>::defer(self.io, num)
+                <P as Acceptor<I, E, Accept<S, Q>>>::defer(self, num)
             },
             None => {
                 self.defer()

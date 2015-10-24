@@ -1,32 +1,32 @@
 use std::mem;
 use std::marker::PhantomData;
 use super::SessionType;
-use protocol::{Protocol, Handler, Defer, DeferFunc};
+use protocol::{Channel, Protocol, Handler, Defer, DeferFunc};
 
 /// This trait effectively posits that a protocol which handles `T` must
 /// additionally handle other types. If `T` is an `Accept<S, Q>` the
 /// protocol must handle `S` *and* be an `Acceptor` of `Q`. If `T` is 
 /// a `Finally<S>` it must handle `S`.
 pub trait Acceptor<I, E, T>: Protocol + Sized {
-	fn defer(I, usize) -> Defer<Self, I>;
+	fn defer<X: SessionType, Y: SessionType>(chan: Channel<Self, I, X, Y>, usize) -> Defer<Self, I>;
 }
 impl<I, E: SessionType, H: Protocol + Handler<I, E, S> + Acceptor<I, E, Q>, S: SessionType, Q: SessionType> Acceptor<I, E, Accept<S, Q>> for H {
-	fn defer(io: I, num: usize) -> Defer<H, I> {
+	fn defer<X: SessionType, Y: SessionType>(chan: Channel<Self, I, X, Y>, num: usize) -> Defer<H, I> {
 		if num == 0 {
 			let next_func: DeferFunc<Self, I, E, S> = <Self as Handler<I, E, S>>::with;
 
-			Defer::new(io, unsafe { mem::transmute(next_func) }, true)
+			Defer::new(chan, unsafe { mem::transmute(next_func) }, true)
 		} else {
-			<Self as Acceptor<I, E, Q>>::defer(io, num - 1)
+			<Self as Acceptor<I, E, Q>>::defer(chan, num - 1)
 		}
 	}
 }
 impl<I, E: SessionType, H: Protocol + Handler<I, E, S>,                     S: SessionType>                 Acceptor<I, E, Finally<S>>   for H {
-	fn defer(io: I, _: usize) -> Defer<H, I> {
+	fn defer<X: SessionType, Y: SessionType>(chan: Channel<Self, I, X, Y>, _: usize) -> Defer<H, I> {
 		// regardless of num we cannot proceed further than Finally
 		let next_func: DeferFunc<Self, I, E, S> = <Self as Handler<I, E, S>>::with;
 
-		Defer::new(io, unsafe { mem::transmute(next_func) }, true)
+		Defer::new(chan, unsafe { mem::transmute(next_func) }, true)
 	}
 }
 

@@ -36,7 +36,7 @@ impl<P: Protocol, I> Defer<P, I> {
 
 impl<P: Protocol, I> Defer<P, I> {
     pub fn with(&mut self) -> bool {
-        let p: Channel<P, I, (), ()> = Channel(self.io.take().unwrap(), PhantomData);
+        let p: Channel<P, I, (), ()> = Channel::new(self.io.take().unwrap());
 
         let mut new = (self.func)(p);
         self.func = new.func;
@@ -52,7 +52,19 @@ pub type DeferFunc<P, I, E, S> = fn(Channel<P, I, E, S>) -> Defer<P, I>;
 
 /// Channels are provided to handlers to act as a "courier" for the session type
 /// and a guard for the IO backend.
-pub struct Channel<P: Protocol, I, E: SessionType, S: SessionType>(I, PhantomData<(P, E, S)>);
+pub struct Channel<P: Protocol, I, E: SessionType, S: SessionType> {
+    io: I,
+    _marker: PhantomData<(P, E, S)>
+}
+
+impl<P: Protocol, I, E: SessionType, S: SessionType> Channel<P, I, E, S> {
+    fn new(io: I) -> Channel<P, I, E, S> {
+        Channel {
+            io: io,
+            _marker: PhantomData
+        }
+    }
+}
 
 /// `Handler` is implemented on `Protocol` for every session type you expect to defer,
 /// including the initial state.
@@ -65,11 +77,11 @@ pub trait Handler<I, E: SessionType, S: SessionType>: Protocol + Sized {
 }
 
 pub fn channel<P: Protocol, I: IO>(io: I) -> Channel<P, I, (), P::Initial> {
-    Channel(io, PhantomData)
+    Channel::new(io)
 }
 
 pub fn channel_dual<P: Protocol, I: IO>(io: I) -> Channel<P, I, (), <P::Initial as SessionType>::Dual> {
-    Channel(io, PhantomData)
+    Channel::new(io)
 }
 
 impl<I, E: SessionType, S: SessionType, P: Handler<I, E, S>> Channel<P, I, E, S> {
@@ -79,35 +91,35 @@ impl<I, E: SessionType, S: SessionType, P: Handler<I, E, S>> Channel<P, I, E, S>
     pub fn defer(self) -> Defer<P, I> {
         let next_func: DeferFunc<P, I, E, S> = Handler::<I, E, S>::with;
 
-        Defer::new(self.0, unsafe { mem::transmute(next_func) }, true)
+        Defer::new(self.io, unsafe { mem::transmute(next_func) }, true)
     }
 }
 
 impl<I: IO, E: SessionType, P: Protocol> Channel<P, I, E, End> {
     /// Close the channel. Only possible if it's in the `End` state.
     pub fn close(mut self) -> Defer<P, I> {
-        unsafe { self.0.close() };
+        unsafe { self.io.close() };
 
         let next_func: DeferFunc<P, I, E, End> = Dummy::<P, I, E, End>::with;
 
-        Defer::new(self.0, unsafe { mem::transmute(next_func) }, false)
+        Defer::new(self.io, unsafe { mem::transmute(next_func) }, false)
     }
 }
 
 impl<I: Transfers<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<P, I, E, Send<T, S>> {
     /// Send a `T` to IO.
     pub fn send(mut self, a: T) -> Channel<P, I, E, S> {
-        unsafe { self.0.send(a) };
+        unsafe { self.io.send(a) };
 
-        Channel(self.0, PhantomData)
+        Channel::new(self.io)
     }
 }
 
 impl<I: Transfers<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<P, I, E, Recv<T, S>> {
     /// Receive a `T` from IO.
     pub fn recv(mut self) -> Result<(T, Channel<P, I, E, S>), Self> {
-        match unsafe { self.0.recv() } {
-            Some(res) => Ok((res, Channel(self.0, PhantomData))),
+        match unsafe { self.io.recv() } {
+            Some(res) => Ok((res, Channel::new(self.io))),
             None => {
                 Err(self)
             }
@@ -118,23 +130,23 @@ impl<I: Transfers<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<P,
 impl<I, E: SessionType, S: SessionType, P: Protocol> Channel<P, I, E, Nest<S>> {
     /// Enter into a nested protocol.
     pub fn enter(self) -> Channel<P, I, (S, E), S> {
-        Channel(self.0, PhantomData)
+        Channel::new(self.io)
     }
 }
 
 impl<I, N: Peano, E: SessionType + Pop<N>, P: Protocol> Channel<P, I, E, Escape<N>> {
     /// Escape from a nested protocol.
     pub fn pop(self) -> Channel<P, I, E::Tail, E::Head> {
-        Channel(self.0, PhantomData)
+        Channel::new(self.io)
     }
 }
 
 impl<I: IO, E: SessionType, R: SessionType, P: Protocol> Channel<P, I, E, R> {
     /// Select a protocol to advance to.
     pub fn choose<S: SessionType>(mut self) -> Channel<P, I, E, S> where R: Chooser<S> {
-        unsafe { self.0.send_varint(R::num()); }
+        unsafe { self.io.send_varint(R::num()); }
 
-        Channel(self.0, PhantomData)
+        Channel::new(self.io)
     }
 }
 
@@ -147,9 +159,9 @@ impl<I: IO, // Our IO
     > Channel<P, I, E, Accept<S, Q>> {
     /// Accept one of many protocols and advance to its handler.
     pub fn accept(mut self) -> Defer<P, I> {
-        match unsafe { self.0.recv_varint() } {
+        match unsafe { self.io.recv_varint() } {
             Some(num) => {
-                <P as Acceptor<I, E, Accept<S, Q>>>::defer(self.0, num)
+                <P as Acceptor<I, E, Accept<S, Q>>>::defer(self.io, num)
             },
             None => {
                 self.defer()

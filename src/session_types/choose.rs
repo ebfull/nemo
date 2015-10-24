@@ -11,6 +11,7 @@ pub trait Acceptor<I, E: SessionType, T>: Protocol + Sized {
 	fn defer<Y: SessionType>(chan: Channel<Self, I, E, Y>, usize) -> Defer<Self, I>;
 }
 impl<I, E: SessionType, H: Protocol + Handler<I, E, S> + Acceptor<I, E, Q>, S: SessionType, Q: SessionType> Acceptor<I, E, Accept<S, Q>> for H {
+	#[inline(always)]
 	fn defer<Y: SessionType>(chan: Channel<Self, I, E, Y>, num: usize) -> Defer<H, I> {
 		if num == 0 {
 			let next_func: DeferFunc<Self, I, E, S> = <Self as Handler<I, E, S>>::with;
@@ -22,6 +23,7 @@ impl<I, E: SessionType, H: Protocol + Handler<I, E, S> + Acceptor<I, E, Q>, S: S
 	}
 }
 impl<I, E: SessionType, H: Protocol + Handler<I, E, S>,                     S: SessionType>                 Acceptor<I, E, Finally<S>>   for H {
+	#[inline(always)]
 	fn defer<Y: SessionType>(chan: Channel<Self, I, E, Y>, _: usize) -> Defer<H, I> {
 		// regardless of num we cannot proceed further than Finally
 		let next_func: DeferFunc<Self, I, E, S> = <Self as Handler<I, E, S>>::with;
@@ -48,16 +50,19 @@ pub trait Chooser<T> {
 }
 
 impl<S: SessionType, Q: SessionType> Chooser<S> for Choose<S, Q> {
+	#[inline(always)]
 	fn num() -> usize { 0 }
 }
 
 impl<S: SessionType> Chooser<S> for Finally<S> {
+	#[inline(always)]
 	fn num() -> usize { 0 }
 }
 
 impl<R: SessionType, S: SessionType, Q: SessionType + Chooser<S>> Chooser<S> for Choose<R, Q>
 	where (S, R): NotSame
 {
+	#[inline(always)]
 	fn num() -> usize { Q::num().checked_add(1).unwrap() }
 }
 

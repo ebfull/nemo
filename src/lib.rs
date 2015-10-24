@@ -20,6 +20,37 @@ pub mod session_types;
 pub mod channels;
 mod protocol;
 
+#[macro_export]
+macro_rules! peano {
+	() => (Z);
+	(0) => (Z);
+	(1) => (S<peano!(0)>);
+	(2) => (S<peano!(1)>);
+	(3) => (S<peano!(2)>);
+	(4) => (S<peano!(3)>);
+	(5) => (S<peano!(4)>);
+	(6) => (S<peano!(5)>);
+	(7) => (S<peano!(6)>);
+	(8) => (S<peano!(7)>);
+	(9) => (S<peano!(8)>);
+	(10) => (S<peano!(9)>);
+	(11) => (S<peano!(10)>);
+}
+
+#[macro_export]
+macro_rules! proto {
+	(Recv $t:ty, $($rest:tt)*) => (Recv<$t, proto!($($rest)*)>);
+	(Send $t:ty, $($rest:tt)*) => (Send<$t, proto!($($rest)*)>);
+	(loop { $($rest:tt)* }) => (Nest<proto!($($rest)*)>);
+	(continue $p:tt) => (Escape<peano!($p)>);
+	(End) => (End);
+	({$($rest:tt)*}) => (proto!($($rest)*));
+	(Choose { $p:tt, $($rest:tt)*}) => (Choose<proto!($p), proto!(Choose {$($rest)*})>);
+	(Choose { $p:tt }) => (Finally<proto!($p)>);
+	(Accept { $p:tt, $($rest:tt)*}) => (Accept<proto!($p), proto!(Accept {$($rest)*})>);
+	(Accept { $p:tt }) => (Finally<proto!($p)>);
+}
+
 pub use protocol::{Channel, Defer, Protocol, Handler, channel, channel_dual};
 
 pub unsafe trait IO {

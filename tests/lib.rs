@@ -1,7 +1,156 @@
+#![feature(type_macros)]
+
+#[macro_use]
 extern crate nemo;
 use nemo::*;
 use nemo::session_types::*;
 use nemo::peano::*;
+
+#[test]
+fn test_proto_macro() {
+    use std::marker::PhantomData;
+
+    fn get<T>() -> PhantomData<T> { PhantomData }
+
+    macro_rules! same {
+        ($t1:ty = $t2:ty) => (
+            {
+                let _: PhantomData<$t1> = get::<$t2>();
+            }
+        )
+    }
+
+    // Send/Recv
+    same!(Recv<usize, End> = proto!(Recv usize, End));
+    same!(Send<usize, End> = proto!(Send usize, End));
+    same!(Send<usize, Recv<u8, End>> = proto!(Send usize, Recv u8, End));
+    same!(Recv<usize, Send<u8, End>> = proto!(Recv usize, Send u8, End));
+
+
+    // Nest/Escape
+    same!(Nest<Send<usize, Escape<Z>>> = proto!(
+        loop {
+            Send usize,
+            continue 0
+        }
+    ));
+
+    same!(Nest<Recv<usize, Nest<Send<usize, Escape<S<Z>>>>>> = proto!(
+        loop {
+            Recv usize,
+            loop {
+                Send usize,
+                continue 1
+            }
+        }
+    ));
+
+    // Choose/Accept
+
+    same!(Choose<Recv<usize, End>, Finally<End>> = proto!(
+        Choose {
+            {
+                Recv usize,
+                End
+            },
+            End
+        }
+    ));
+
+    same!(
+        Nest<
+            Recv<usize, 
+                 Choose<
+                    Recv<usize, Send<usize, Escape<Z>>>,
+                    Choose<
+                        Send<usize, End>,
+                        Finally<
+                            Nest<
+                                Recv<usize,
+                                     Choose<
+                                        Escape<Z>,
+                                        Finally<Escape<S<Z>>>
+                                     >
+                                >
+                            >
+                        >
+                    >
+                 >
+            >
+        >
+     = proto!(
+        loop {
+            Recv usize,
+            Choose {
+                {
+                    Recv usize,
+                    Send usize,
+                    continue 0
+                },
+                {
+                    Send usize,
+                    End
+                },
+                {
+                    loop {
+                        Recv usize,
+                        Choose {
+                            {continue 0},
+                            {continue 1}
+                        }
+                    }
+                }
+            }
+        }
+    ));
+
+    same!(
+        Nest<
+            Recv<usize, 
+                 Accept<
+                    Recv<usize, Send<usize, Escape<Z>>>,
+                    Accept<
+                        Send<usize, End>,
+                        Finally<
+                            Nest<
+                                Recv<usize,
+                                     Accept<
+                                        Escape<Z>,
+                                        Finally<Escape<S<Z>>>
+                                     >
+                                >
+                            >
+                        >
+                    >
+                 >
+            >
+        >
+     = proto!(
+        loop {
+            Recv usize,
+            Accept {
+                {
+                    Recv usize,
+                    Send usize,
+                    continue 0
+                },
+                {
+                    Send usize,
+                    End
+                },
+                {
+                    loop {
+                        Recv usize,
+                        Accept {
+                            {continue 0},
+                            {continue 1}
+                        }
+                    }
+                }
+            }
+        }
+    ));
+}
 
 #[test]
 fn choosing_protocol() {

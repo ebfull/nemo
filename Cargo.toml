@@ -12,3 +12,6 @@ license = "MIT"
 
 [dependencies]
 rand = "0.3.11"
+
+[dev-dependencies]
+compiletest_rs = "0.0.10"

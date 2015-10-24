@@ -16,6 +16,7 @@ pub trait Protocol {
 /// by calling `.close()` when the session is `End`.
 pub struct Defer<P: Protocol, I> {
     io: Option<I>,
+    proto: Option<P>,
     func: DeferFunc<P, I, (), ()>,
     open: bool,
     _marker: PhantomData<P>
@@ -28,6 +29,7 @@ impl<P: Protocol, I> Defer<P, I> {
     {
         Defer {
             io: Some(chan.io),
+            proto: Some(chan.proto),
             func: next,
             open: open,
             _marker: PhantomData
@@ -37,12 +39,13 @@ impl<P: Protocol, I> Defer<P, I> {
 
 impl<P: Protocol, I> Defer<P, I> {
     pub fn with(&mut self) -> bool {
-        let p: Channel<P, I, (), ()> = Channel::new(self.io.take().unwrap());
+        let p: Channel<P, I, (), ()> = Channel::new(self.io.take().unwrap(), self.proto.take().unwrap());
 
         let mut new = (self.func)(p);
         self.func = new.func;
         self.open = new.open;
         self.io = Some(new.io.take().unwrap());
+        self.proto = Some(new.proto.take().unwrap());
 
         self.open
     }
@@ -55,13 +58,15 @@ pub type DeferFunc<P, I, E, S> = fn(Channel<P, I, E, S>) -> Defer<P, I>;
 /// and a guard for the IO backend.
 pub struct Channel<P: Protocol, I, E: SessionType, S: SessionType> {
     io: I,
+    pub proto: P,
     _marker: PhantomData<(P, E, S)>
 }
 
 impl<P: Protocol, I, E: SessionType, S: SessionType> Channel<P, I, E, S> {
-    fn new(io: I) -> Channel<P, I, E, S> {
+    fn new(io: I, proto: P) -> Channel<P, I, E, S> {
         Channel {
             io: io,
+            proto: proto,
             _marker: PhantomData
         }
     }
@@ -77,12 +82,12 @@ pub trait Handler<I, E: SessionType, S: SessionType>: Protocol + Sized {
     fn with(Channel<Self, I, E, S>) -> Defer<Self, I>;
 }
 
-pub fn channel<P: Protocol, I: IO>(io: I) -> Channel<P, I, (), P::Initial> {
-    Channel::new(io)
+pub fn channel<P: Protocol, I: IO>(io: I, proto: P) -> Channel<P, I, (), P::Initial> {
+    Channel::new(io, proto)
 }
 
-pub fn channel_dual<P: Protocol, I: IO>(io: I) -> Channel<P, I, (), <P::Initial as SessionType>::Dual> {
-    Channel::new(io)
+pub fn channel_dual<P: Protocol, I: IO>(io: I, proto: P) -> Channel<P, I, (), <P::Initial as SessionType>::Dual> {
+    Channel::new(io, proto)
 }
 
 impl<I, E: SessionType, S: SessionType, P: Handler<I, E, S>> Channel<P, I, E, S> {
@@ -112,7 +117,7 @@ impl<I: Transfers<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<P,
     pub fn send(mut self, a: T) -> Channel<P, I, E, S> {
         unsafe { self.io.send(a) };
 
-        Channel::new(self.io)
+        Channel::new(self.io, self.proto)
     }
 }
 
@@ -120,7 +125,7 @@ impl<I: Transfers<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<P,
     /// Receive a `T` from IO.
     pub fn recv(mut self) -> Result<(T, Channel<P, I, E, S>), Self> {
         match unsafe { self.io.recv() } {
-            Some(res) => Ok((res, Channel::new(self.io))),
+            Some(res) => Ok((res, Channel::new(self.io, self.proto))),
             None => {
                 Err(self)
             }
@@ -131,14 +136,14 @@ impl<I: Transfers<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<P,
 impl<I, E: SessionType, S: SessionType, P: Protocol> Channel<P, I, E, Nest<S>> {
     /// Enter into a nested protocol.
     pub fn enter(self) -> Channel<P, I, (S, E), S> {
-        Channel::new(self.io)
+        Channel::new(self.io, self.proto)
     }
 }
 
 impl<I, N: Peano, E: SessionType + Pop<N>, P: Protocol> Channel<P, I, E, Escape<N>> {
     /// Escape from a nested protocol.
     pub fn pop(self) -> Channel<P, I, E::Tail, E::Head> {
-        Channel::new(self.io)
+        Channel::new(self.io, self.proto)
     }
 }
 
@@ -147,7 +152,7 @@ impl<I: IO, E: SessionType, R: SessionType, P: Protocol> Channel<P, I, E, R> {
     pub fn choose<S: SessionType>(mut self) -> Channel<P, I, E, S> where R: Chooser<S> {
         unsafe { self.io.send_varint(R::num()); }
 
-        Channel::new(self.io)
+        Channel::new(self.io, self.proto)
     }
 }
 

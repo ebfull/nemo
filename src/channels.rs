@@ -15,7 +15,7 @@ pub struct Blocking {
 
 impl Blocking {
     /// Create a new bi-directional channel for protocols.
-    pub fn new<P: Protocol>() -> (super::Channel<P, Blocking, (), P::Initial>, super::Channel<P, Blocking, (), <P::Initial as SessionType>::Dual>) {
+    pub fn new<P: Protocol>(a: P, b: P) -> (super::Channel<P, Blocking, (), P::Initial>, super::Channel<P, Blocking, (), <P::Initial as SessionType>::Dual>) {
         let (tx1, rx1) = channel();
         let (tx2, rx2) = channel();
 
@@ -23,11 +23,11 @@ impl Blocking {
             super::channel(Blocking {
                 tx: tx1,
                 rx: rx2
-            }),
+            }, a),
             super::channel_dual(Blocking {
                 tx: tx2,
                 rx: rx1
-            })
+            }, b)
         )
     }
 }

@@ -216,7 +216,7 @@ fn choosing_protocol() {
         }
     }
 
-    let (client1, client2) = Blocking::new::<MyProtocol>();
+    let (client1, client2) = Blocking::new::<MyProtocol>(MyProtocol, MyProtocol);
 
     let mut client1 = client1.defer();
     let mut client2 = client2.defer();
@@ -285,7 +285,7 @@ fn recursive_protocol() {
         }
     }
 
-    let (client1, client2) = Blocking::new::<MyProtocol>();
+    let (client1, client2) = Blocking::new::<MyProtocol>(MyProtocol, MyProtocol);
 
     let mut client1 = client1.defer();
     let mut client2 = client2.defer();
@@ -356,7 +356,7 @@ fn initialize_protocol() {
         }
     }
 
-    let (client1, client2) = Blocking::new::<MyProtocol>();
+    let (client1, client2) = Blocking::new::<MyProtocol>(MyProtocol, MyProtocol);
 
     let mut client1 = client1.defer();
     let mut client2 = client2.defer();

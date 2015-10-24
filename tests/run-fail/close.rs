@@ -17,13 +17,13 @@ fn main() {
         type Initial = Orig;
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, Orig>) -> Defer<Self, I> {
             this.send(10).defer()
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, Recv<usize, End>> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, Recv<usize, End>> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, Recv<usize, End>>) -> Defer<Self, I> {
             match this.recv() {
             	Ok((msg, this)) => {
@@ -40,7 +40,7 @@ fn main() {
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, Other> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, Other> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, Other>) -> Defer<Self, I> {
             match this.recv() {
             	Ok((msg, this)) => {

@@ -24,31 +24,31 @@ fn main() {
         type Initial = Orig;
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, Orig>) -> Defer<Self, I> {
             this.choose::<SendIsize>().send(10).close()
         }
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, DualOrig>) -> Defer<Self, I> {
             this.accept()
         }
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendString> for MyProtocol {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualSendString> for MyProtocol {
         fn with<'a>(_: Channel<'a, Self, I, E, DualSendString>) -> Defer<Self, I> {
             panic!("fail")
         }
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendUsize> for MyProtocol {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualSendUsize> for MyProtocol {
         fn with<'a>(_: Channel<'a, Self, I, E, DualSendUsize>) -> Defer<Self, I> {
             panic!("fail")
         }
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendIsize> for MyProtocol {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualSendIsize> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, DualSendIsize>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((msg, sess)) => {

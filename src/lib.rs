@@ -33,25 +33,25 @@ impl ChannelClaim {
 	}
 }
 
-pub unsafe trait AbstractIO {
+pub unsafe trait IO {
 	/// `Channel` will claim this `IO` backend as its own using a special identifier.
 	/// The other methods must ensure this identifier is equivalent, and panic otherwise.
 	/// Attempts to claim twice should also panic: the IO backend is forever tainted.
 	fn claim(&mut self, id: ChannelClaim);
+
+    /// Closes the channel.
+    fn close(&mut self, id: ChannelClaim);
 }
 
 /// This trait describes a backend for a channel to expose a message
 /// passing interface. The trait is unsafe because it will be asked to supply
 /// arbitrary types, and so must preserve the invariant that it will never allow
 /// the backing channel to be modified outside of this trait.
-pub unsafe trait IO<T>: AbstractIO {
+pub unsafe trait Transfers<T>: IO {
     /// Sends an object from the handler to the outside channel.
     fn send(&mut self, T, id: ChannelClaim);
 
     /// Attempts to retrieve an object from the outside channel. This *can* block
     /// but it also might not, depending on the impl.
     fn recv(&mut self, id: ChannelClaim) -> Option<T>;
-
-    /// Closes the channel.
-    fn close(&mut self, id: ChannelClaim);
 }

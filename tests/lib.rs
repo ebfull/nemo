@@ -23,31 +23,31 @@ fn choosing_protocol() {
         type Initial = Orig;
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, Orig>) -> Defer<Self, I> {
             this.choose::<SendIsize>().send(10).close()
         }
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, DualOrig>) -> Defer<Self, I> {
             this.accept()
         }
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendString> for MyProtocol {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualSendString> for MyProtocol {
         fn with<'a>(_: Channel<'a, Self, I, E, DualSendString>) -> Defer<Self, I> {
             panic!("should not have received a string..")
         }
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendUsize> for MyProtocol {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualSendUsize> for MyProtocol {
         fn with<'a>(_: Channel<'a, Self, I, E, DualSendUsize>) -> Defer<Self, I> {
             panic!("should not have received a usize..")
         }
     }
 
-    impl<I: IO<String> + IO<usize> + IO<isize>, E: SessionType> Handler<I, E, DualSendIsize> for MyProtocol {
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualSendIsize> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, DualSendIsize>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((msg, sess)) => {
@@ -88,19 +88,19 @@ fn recursive_protocol() {
         type Initial = Orig;
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, Orig>) -> Defer<Self, I> {
             this.enter().defer()
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, (OrigEntered, E), OrigEntered> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, (OrigEntered, E), OrigEntered> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, (OrigEntered, E), OrigEntered>) -> Defer<Self, I> {
             this.send(10).defer()
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, (OrigEntered, E), AwaitingNumber> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, (OrigEntered, E), AwaitingNumber> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, (OrigEntered, E), AwaitingNumber>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((msg, this)) => {
@@ -112,13 +112,13 @@ fn recursive_protocol() {
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, DualOrig>) -> Defer<Self, I> {
             this.enter().defer()
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, (DualOrigEntered, E), DualOrigEntered> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, (DualOrigEntered, E), DualOrigEntered> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, (DualOrigEntered, E), DualOrigEntered>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((msg, this)) => {
@@ -161,7 +161,7 @@ fn initialize_protocol() {
         type Initial = SendNumber;
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, GetNumber> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, GetNumber> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, GetNumber>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((msg, session)) => {
@@ -175,7 +175,7 @@ fn initialize_protocol() {
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, GetNumberFirst> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, GetNumberFirst> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, GetNumberFirst>) -> Defer<Self, I> {
             match this.recv() {
                 Ok((msg, session)) => {
@@ -189,13 +189,13 @@ fn initialize_protocol() {
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, SendNumber> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, SendNumber> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, SendNumber>) -> Defer<Self, I> {
             this.send(10).defer()
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, End> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, End> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, End>) -> Defer<Self, I> {
             this.close()
         }

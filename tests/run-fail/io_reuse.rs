@@ -17,25 +17,25 @@ fn main() {
         type Initial = Orig;
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, Orig>) -> Defer<Self, I> {
             this.enter().defer()
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, (Send<usize, Escape<Z>>, E), Send<usize, Escape<Z>>> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, (Send<usize, Escape<Z>>, E), Send<usize, Escape<Z>>> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, (Send<usize, Escape<Z>>, E), Send<usize, Escape<Z>>>) -> Defer<Self, I> {
             this.send(10).pop().defer()
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, Recv<usize, Escape<Z>>> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, Recv<usize, Escape<Z>>> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, Recv<usize, Escape<Z>>>) -> Defer<Self, I> {
             this.defer()
         }
     }
 
-    impl<I: IO<usize>, E: SessionType> Handler<I, E, Other> for MyProtocol {
+    impl<I: Transfers<usize>, E: SessionType> Handler<I, E, Other> for MyProtocol {
         fn with<'a>(this: Channel<'a, Self, I, E, Other>) -> Defer<Self, I> {
             this.enter().defer()
         }

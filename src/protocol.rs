@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 use std::mem;
 use session_types::*;
 use peano::{Peano,Pop};
-use super::{AbstractIO, ChannelClaim, IO};
+use super::{IO, ChannelClaim, Transfers};
 
 /// A `Protocol` describes the underlying protocol, including the "initial" session
 /// type. `Handler`s are defined over concrete `Protocol`s to implement the behavior
@@ -53,14 +53,14 @@ pub trait Handler<I, E: SessionType, S: SessionType>: Protocol + Sized {
     fn with<'a>(Channel<'a, Self, I, E, S>) -> Defer<Self, I>;
 }
 
-pub fn channel<'a, P: Protocol, I: AbstractIO>(io: &'a mut I) -> Channel<'a, P, I, (), P::Initial> {
+pub fn channel<'a, P: Protocol, I: IO>(io: &'a mut I) -> Channel<'a, P, I, (), P::Initial> {
     let claim = ChannelClaim::new();
     io.claim(claim);
 
     Channel(io, claim, PhantomData)
 }
 
-pub fn channel_dual<'a, P: Protocol, I: AbstractIO>(io: &'a mut I) -> Channel<'a, P, I, (), <P::Initial as SessionType>::Dual> {
+pub fn channel_dual<'a, P: Protocol, I: IO>(io: &'a mut I) -> Channel<'a, P, I, (), <P::Initial as SessionType>::Dual> {
     let claim = ChannelClaim::new();
     io.claim(claim);
 
@@ -78,8 +78,7 @@ impl<'a, I, E: SessionType, S: SessionType, P: Handler<I, E, S>> Channel<'a, P, 
     }
 }
 
-// TODO: refactor IO, add supertrait for close()
-impl<'a, I: IO<usize>, E: SessionType, P: Protocol> Channel<'a, P, I, E, End> {
+impl<'a, I: IO, E: SessionType, P: Protocol> Channel<'a, P, I, E, End> {
     /// Close the channel. Only possible if it's in the `End` state.
     pub fn close(self) -> Defer<P, I> {
         self.0.close(self.1);
@@ -90,7 +89,7 @@ impl<'a, I: IO<usize>, E: SessionType, P: Protocol> Channel<'a, P, I, E, End> {
     }
 }
 
-impl<'a, I: IO<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<'a, P, I, E, Send<T, S>> {
+impl<'a, I: Transfers<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<'a, P, I, E, Send<T, S>> {
     /// Send a `T` to IO.
     pub fn send(self, a: T) -> Channel<'a, P, I, E, S> {
         self.0.send(a, self.1);
@@ -99,7 +98,7 @@ impl<'a, I: IO<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<'a, P
     }
 }
 
-impl<'a, I: IO<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<'a, P, I, E, Recv<T, S>> {
+impl<'a, I: Transfers<T>, T, E: SessionType, S: SessionType, P: Protocol> Channel<'a, P, I, E, Recv<T, S>> {
     /// Receive a `T` from IO.
     pub fn recv(self) -> Result<(T, Channel<'a, P, I, E, S>), Self> {
         match self.0.recv(self.1) {
@@ -125,7 +124,7 @@ impl<'a, I, N: Peano, E: SessionType + Pop<N>, P: Protocol> Channel<'a, P, I, E,
     }
 }
 
-impl<'a, I: IO<usize>, E: SessionType, R: SessionType, P: Protocol> Channel<'a, P, I, E, R> {
+impl<'a, I: Transfers<usize>, E: SessionType, R: SessionType, P: Protocol> Channel<'a, P, I, E, R> {
     /// Select a protocol to advance to.
     pub fn choose<S: SessionType>(self) -> Channel<'a, P, I, E, S> where R: Chooser<S> {
         self.0.send(R::num(), self.1);
@@ -134,7 +133,7 @@ impl<'a, I: IO<usize>, E: SessionType, R: SessionType, P: Protocol> Channel<'a, 
     }
 }
 
-impl<'a, I: IO<usize>, // Our IO must be capable of sending a usize
+impl<'a, I: Transfers<usize>, // Our IO must be capable of sending a usize
          E: SessionType, // Our current environment
          S: SessionType, // The first branch of our accepting session
          Q: SessionType, // The second branch of our accepting session

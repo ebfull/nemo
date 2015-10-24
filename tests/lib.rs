@@ -62,10 +62,11 @@ fn choosing_protocol() {
         }
     }
 
-    let (io1, io2) = Blocking::new();
+    let (client1, client2) = Blocking::new::<MyProtocol>();
 
-    let mut client1: Defer<MyProtocol, Blocking> = channel(io1).defer();
-    let mut client2: Defer<MyProtocol, Blocking> = channel_dual(io2).defer();
+    let mut client1 = client1.defer();
+    let mut client2 = client2.defer();
+
     assert_eq!(false, client1.with()); // client1 chooses a protocol, sends 10, closes channel
     assert_eq!(true, client2.with()); // client2 accepts the protocol, defers
     assert_eq!(false, client2.with()); // client2 receives the isize, asserts it's 10, closes channel
@@ -130,10 +131,10 @@ fn recursive_protocol() {
         }
     }
 
-    let (io1, io2) = Blocking::new();
+    let (client1, client2) = Blocking::new::<MyProtocol>();
 
-    let mut client1: Defer<MyProtocol, Blocking> = channel(io1).defer();
-    let mut client2: Defer<MyProtocol, Blocking> = channel_dual(io2).defer();
+    let mut client1 = client1.defer();
+    let mut client2 = client2.defer();
 
     assert_eq!(true, client1.with()); // enters nesting
     assert_eq!(true, client1.with()); // sends 10 to client2
@@ -201,10 +202,10 @@ fn initialize_protocol() {
         }
     }
 
-    let (io1, io2) = Blocking::new();
+    let (client1, client2) = Blocking::new::<MyProtocol>();
 
-    let mut client1: Defer<MyProtocol, Blocking> = channel(io1).defer();
-    let mut client2: Defer<MyProtocol, Blocking> = channel_dual(io2).defer();
+    let mut client1 = client1.defer();
+    let mut client2 = client2.defer();
 
     assert_eq!(true, client1.with()); // sends 10 to client2
     assert_eq!(true, client2.with()); // receives 10, sends 10 to client1

@@ -55,10 +55,10 @@ fn main() {
         }
     }
 
-    let (io1, io2) = Blocking::new();
+    let (client1, client2) = Blocking::new::<MyProtocol>();
 
-    let mut client1: Defer<MyProtocol, Blocking> = channel(io1).defer();
-    let mut client2: Defer<MyProtocol, Blocking> = channel_dual(io2).defer();
+    let mut client1 = client1.defer();
+    let mut client2 = client2.defer();
 
     assert_eq!(true, client1.with()); // send 10
     assert_eq!(false, client2.with()); // recv 10, send 15, close

@@ -3,7 +3,8 @@
 
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::mem;
-use super::{Transfers, IO};
+use super::{Channel, Protocol, Transfers, IO};
+use super::session_types::SessionType;
 
 /// This is an implementation of a blocking channel IO backend. Internally
 /// it uses MPSC queues.
@@ -14,19 +15,19 @@ pub struct Blocking {
 
 impl Blocking {
     /// Create a new bi-directional channel for protocols.
-    pub fn new() -> (Blocking, Blocking) {
+    pub fn new<P: Protocol>() -> (super::Channel<P, Blocking, (), P::Initial>, super::Channel<P, Blocking, (), <P::Initial as SessionType>::Dual>) {
         let (tx1, rx1) = channel();
         let (tx2, rx2) = channel();
 
         (
-            Blocking {
+            super::channel(Blocking {
                 tx: tx1,
                 rx: rx2
-            },
-            Blocking {
+            }),
+            super::channel_dual(Blocking {
                 tx: tx2,
                 rx: rx1
-            }
+            })
         )
     }
 }

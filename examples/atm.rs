@@ -32,18 +32,18 @@ type AtmMenu = proto!(
 type AtmDeposit = proto!(
     Recv u64, // get the amount they're depositing
     Send u64, // tell them their new balance
-    continue 0
+    continue
 );
 
 type AtmWithdraw = proto!(
     Recv u64,  // get the amount they're withdrawing
     Send bool, // tell them if withdrawal succeeded
-    continue 0
+    continue
 );
 
 type AtmGetBalance = proto!(
     Send u64,
-    continue 0
+    continue
 );
 
 impl Protocol for Atm {

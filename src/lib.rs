@@ -21,28 +21,29 @@ pub mod channels;
 mod protocol;
 
 #[macro_export]
-macro_rules! peano {
-	() => (Z);
-	(0) => (Z);
-	(1) => (S<peano!(0)>);
-	(2) => (S<peano!(1)>);
-	(3) => (S<peano!(2)>);
-	(4) => (S<peano!(3)>);
-	(5) => (S<peano!(4)>);
-	(6) => (S<peano!(5)>);
-	(7) => (S<peano!(6)>);
-	(8) => (S<peano!(7)>);
-	(9) => (S<peano!(8)>);
-	(10) => (S<peano!(9)>);
-	(11) => (S<peano!(10)>);
-}
-
-#[macro_export]
 macro_rules! proto {
+	(@peano 0) => (Z);
+	(@peano 1) => (S<Z>);
+	(@peano 2) => (S<proto!(@peano 1)>);
+	(@peano 3) => (S<proto!(@peano 2)>);
+	(@peano 4) => (S<proto!(@peano 3)>);
+	(@peano 5) => (S<proto!(@peano 4)>);
+	(@peano 6) => (S<proto!(@peano 5)>);
+	(@peano 7) => (S<proto!(@peano 6)>);
+	(@peano 8) => (S<proto!(@peano 7)>);
+	(@peano 9) => (S<proto!(@peano 8)>);
+	(@peano 10) => (S<proto!(@peano 9)>);
+	(@peano 11) => (S<proto!(@peano 10)>);
+	(@peano 12) => (S<proto!(@peano 11)>);
+	(@peano 13) => (S<proto!(@peano 12)>);
+	(@peano 14) => (S<proto!(@peano 13)>);
+	(@peano 15) => (S<proto!(@peano 14)>);
+	(@peano 16) => (S<proto!(@peano 15)>);
 	(Recv $t:ty, $($rest:tt)*) => (Recv<$t, proto!($($rest)*)>);
 	(Send $t:ty, $($rest:tt)*) => (Send<$t, proto!($($rest)*)>);
 	(loop { $($rest:tt)* }) => (Nest<proto!($($rest)*)>);
-	(continue $p:tt) => (Escape<peano!($p)>);
+	(continue $p:tt) => (Escape<proto!(@peano $p)>);
+	(continue) => (Escape<Z>);
 	(goto $p:ty) => ($p);
 	(End) => (End);
 	({$($rest:tt)*}) => (proto!($($rest)*));

@@ -13,8 +13,6 @@
 
 #![feature(optin_builtin_traits)]
 
-extern crate rand;
-
 pub mod peano;
 pub mod session_types;
 pub mod channels;

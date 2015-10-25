@@ -109,11 +109,13 @@ pub unsafe trait IO {
 	/// Closes the channel.
     unsafe fn close(&mut self);
 
-    /// Send a variable length integer over the channel.
-    unsafe fn send_varint(&mut self, usize);
+    /// Send a discriminant over the channel. Over a network a
+    /// variable length integer would be ideal.
+    unsafe fn send_discriminant(&mut self, usize);
 
-    /// Receive a variable length integer from the channel.
-    unsafe fn recv_varint(&mut self) -> Option<usize>;
+    /// Receives a discriminant from the channel. Over a network a
+    /// variable length integer would be ideal.
+    unsafe fn recv_discriminant(&mut self) -> Option<usize>;
 }
 
 /// An implementation of this trait provides sending and receiving

@@ -38,12 +38,12 @@ unsafe impl IO for Blocking {
     }
 
     /// Send a variable length integer over the channel.
-    unsafe fn send_varint(&mut self, num: usize) {
+    unsafe fn send_discriminant(&mut self, num: usize) {
         self.send(num)
     }
 
     /// Receive a variable length integer from the channel.
-    unsafe fn recv_varint(&mut self) -> Option<usize> {
+    unsafe fn recv_discriminant(&mut self) -> Option<usize> {
         self.recv()
     }
 }

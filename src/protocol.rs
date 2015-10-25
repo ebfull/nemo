@@ -150,7 +150,7 @@ impl<I, N: Peano, E: SessionType + Pop<N>, P: Protocol> Channel<P, I, E, Escape<
 impl<I: IO, E: SessionType, R: SessionType, P: Protocol> Channel<P, I, E, R> {
     /// Select a protocol to advance to.
     pub fn choose<S: SessionType>(mut self) -> Channel<P, I, E, S> where R: Chooser<S> {
-        unsafe { self.io.send_varint(R::num()); }
+        unsafe { self.io.send_discriminant(R::num()); }
 
         Channel::new(self.io, self.proto)
     }
@@ -164,7 +164,7 @@ impl<I: IO, // Our IO
     > Channel<P, I, E, Accept<S, Q>> {
     /// Accept one of many protocols and advance to its handler.
     pub fn accept(mut self) -> Result<Defer<P, I>, Channel<P, I, E, Accept<S, Q>>> {
-        match unsafe { self.io.recv_varint() } {
+        match unsafe { self.io.recv_discriminant() } {
             Some(num) => {
                 Ok(<P as Acceptor<I, E, Accept<S, Q>>>::defer(self, num))
             },

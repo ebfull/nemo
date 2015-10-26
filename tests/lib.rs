@@ -226,6 +226,74 @@ fn choosing_protocol() {
 }
 
 #[test]
+fn choosing_protocol_2() {
+    use nemo::channels::Blocking;
+
+    struct MyProtocol;
+
+    type SendString = Send<String, End>;
+    type SendUsize = Send<usize, End>;
+    type SendIsize = Send<isize, End>;
+    type Orig = Choose<SendString, Choose<SendUsize, Finally<SendIsize>>>;
+
+    type DualSendString = Recv<String, End>;
+    type DualSendUsize = Recv<usize, End>;
+    type DualSendIsize = Recv<isize, End>;
+    type DualOrig = Accept<DualSendString, Accept<DualSendUsize, Finally<DualSendIsize>>>;
+
+    impl Protocol for MyProtocol {
+        type Initial = Orig;
+    }
+
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, Orig> for MyProtocol {
+        fn with(this: Channel<Self, I, E, Orig>) -> Defer<Self, I> {
+            this.choose::<SendUsize>().send(10).close()
+        }
+    }
+
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualOrig> for MyProtocol {
+        fn with(this: Channel<Self, I, E, DualOrig>) -> Defer<Self, I> {
+            this.accept().ok().unwrap()
+        }
+    }
+
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualSendString> for MyProtocol {
+        fn with(_: Channel<Self, I, E, DualSendString>) -> Defer<Self, I> {
+            panic!("should not have received a string..")
+        }
+    }
+
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualSendUsize> for MyProtocol {
+        fn with(this: Channel<Self, I, E, DualSendUsize>) -> Defer<Self, I> {
+            match this.recv() {
+                Ok((msg, sess)) => {
+                    assert_eq!(msg, 10);
+
+                    sess.close()
+                },
+                Err(_) => {
+                    panic!("expected to get a message...");
+                }
+            }
+        }
+    }
+
+    impl<I: Transfers<String> + Transfers<usize> + Transfers<isize>, E: SessionType> Handler<I, E, DualSendIsize> for MyProtocol {
+        fn with(_: Channel<Self, I, E, DualSendIsize>) -> Defer<Self, I> {
+            panic!("should not have received an isize..")
+        }
+    }
+
+    let (client1, client2) = Blocking::new::<MyProtocol>(MyProtocol, MyProtocol);
+
+    let mut client1 = client1.defer();
+    let mut client2 = client2.defer();
+
+    assert_eq!(false, client1.with()); // client1 chooses a protocol, sends 10, closes channel
+    assert_eq!(false, client2.with()); // client2 accepts the protocol, handles it immediately, closes
+}
+
+#[test]
 fn recursive_protocol() {
     use nemo::channels::Blocking;
 

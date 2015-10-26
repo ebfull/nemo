@@ -63,6 +63,19 @@ pub struct Channel<P: Protocol, I, E: SessionType, S: SessionType> {
 }
 
 impl<P: Protocol, I, E: SessionType, S: SessionType> Channel<P, I, E, S> {
+    #[doc(hidden)]
+    /// This is unsafe because it could violate memory safety guarantees of the
+    /// API if used improperly.
+    pub unsafe fn into_session<N: SessionType>(self) -> Channel<P, I, E, N> {
+        Channel {
+            io: self.io,
+            proto: self.proto,
+            _marker: PhantomData
+        }
+    }
+}
+
+impl<P: Protocol, I, E: SessionType, S: SessionType> Channel<P, I, E, S> {
     fn new(io: I, proto: P) -> Channel<P, I, E, S> {
         Channel {
             io: io,
@@ -166,7 +179,7 @@ impl<I: IO, // Our IO
     pub fn accept(mut self) -> Result<Defer<P, I>, Channel<P, I, E, Accept<S, Q>>> {
         match unsafe { self.io.recv_discriminant() } {
             Some(num) => {
-                Ok(<P as Acceptor<I, E, Accept<S, Q>>>::defer(self, num))
+                Ok(<P as Acceptor<I, E, Accept<S, Q>>>::with(self, num))
             },
             None => {
                 Err(self)

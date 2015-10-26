@@ -222,8 +222,7 @@ fn choosing_protocol() {
     let mut client2 = client2.defer();
 
     assert_eq!(false, client1.with()); // client1 chooses a protocol, sends 10, closes channel
-    assert_eq!(true, client2.with()); // client2 accepts the protocol, defers
-    assert_eq!(false, client2.with()); // client2 receives the isize, asserts it's 10, closes channel
+    assert_eq!(false, client2.with()); // client2 accepts the protocol, handles it immediately, closes
 }
 
 #[test]

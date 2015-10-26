@@ -1,7 +1,6 @@
-use std::mem;
 use std::marker::PhantomData;
 use super::SessionType;
-use protocol::{Channel, Protocol, Handler, Defer, DeferFunc};
+use protocol::{Channel, Protocol, Handler, Defer};
 
 /// This trait effectively posits that a protocol which handles `T` must
 /// additionally handle other types. If `T` is an `Accept<S, Q>` the

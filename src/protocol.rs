@@ -160,6 +160,18 @@ impl<I, N: Peano, E: SessionType + Pop<N>, P: Protocol> Channel<P, I, E, Escape<
     }
 }
 
+impl<I: IO, E: SessionType, S: Alias, P: Protocol> Channel<P, I, E, Goto<S>> {
+    pub fn goto(self) -> Channel<P, I, E, S::Id> {
+        Channel::new(self.io, self.proto)
+    }
+}
+
+impl<I: IO, E: SessionType, S: Alias, P: Protocol> Channel<P, I, E, GotoDual<S>> {
+    pub fn goto(self) -> Channel<P, I, E, <S::Id as SessionType>::Dual> {
+        Channel::new(self.io, self.proto)
+    }
+}
+
 impl<I: IO, E: SessionType, R: SessionType, P: Protocol> Channel<P, I, E, R> {
     /// Select a protocol to advance to.
     pub fn choose<S: SessionType>(mut self) -> Channel<P, I, E, S> where R: Chooser<S> {

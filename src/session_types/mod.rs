@@ -21,6 +21,18 @@ pub unsafe trait SessionType {
     type Dual: SessionType;
 }
 
+pub struct Goto<A: Alias>(PhantomData<A>);
+pub struct GotoDual<A: Alias>(PhantomData<A>);
+unsafe impl<A: Alias> SessionType for Goto<A> {
+	type Dual = GotoDual<A>;
+}
+unsafe impl<A: Alias> SessionType for GotoDual<A> {
+	type Dual = Goto<A>;
+}
+pub trait Alias {
+	type Id: SessionType;
+}
+
 /// The session is at the end of communication.
 /// The channel can now be gracefully closed.
 pub struct End;

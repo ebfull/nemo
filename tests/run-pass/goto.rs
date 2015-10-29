@@ -60,18 +60,74 @@ macro_rules! proto(
 	);
 );
 
+macro_rules! handlers {
+    (@clean_type alias $lol:ty) => (<$lol as Alias>::Id);
+    (@clean_type dual $($lol:tt)*) => (<handlers!(@clean_type $($lol)*) as SessionType>::Dual);
+    (@clean_type $($lol:tt)*) => (proto!(@form_ty $($lol)*));
+    (
+        $protocol:ident ($($impl_bound:ty),*);
+        $chan:ident($($environment:tt)*) => $b:block
+    ) => (
+        impl<I: IO, E> Handler<I, E, handlers!(@clean_type $($environment)*)> for $protocol
+            where $(I: Transfers<$impl_bound>, )* E: SessionType
+        {
+            fn with($chan: Channel<Self, I, E, handlers!(@clean_type $($environment)*)>) -> Defer<Self, I> {
+                $b
+            }
+        }
+    );
+    (
+        $protocol:ident ($($impl_bound:ty),*);
+        $chan:ident($($environment:tt)*) => $b:block
+
+        $($rest:tt)*
+    ) => (
+        handlers!(
+            $protocol($($impl_bound),*);
+            $chan($($environment)*) => $b
+        );
+
+        handlers!(
+            $protocol($($impl_bound),*);
+            $($rest)*
+        );
+    );
+}
+
 struct Atm;
 
 proto!(Atm, Start = {
 	Recv usize,
 	Test = {
-		Recv usize,
-		Lol = {Choose {
-			End,
-			Goto Test
-		}}
+		Choose {
+			{rifk = {
+				Recv usize,
+				{Goto Test}
+			}},
+			{lofl = {
+				Recv usize,
+				End
+			}}
+		}
 	}
 });
+
+handlers!(
+	Atm(usize);
+
+	this(alias Start) => {
+		match this.recv() {
+			Ok((num, this)) => {
+				this.choose::<<rifk as Alias>::Id>().defer()
+			},
+			Err(this) => this.defer()
+		}
+	}
+
+	this(alias rifk) => {
+		this.defer()
+	}
+);
 
 fn main() {
 

@@ -8,24 +8,9 @@ use nemo::session_types::*;
 use nemo::peano::*;
 use nemo::channels::Blocking;
 
-trace_macros!(true);
-/*
-	(Recv $t:ty, $($rest:tt)*) => (Recv<$t, proto!($($rest)*)>);
-	(Send $t:ty, $($rest:tt)*) => (Send<$t, proto!($($rest)*)>);
-	(loop { $($rest:tt)* }) => (Nest<proto!($($rest)*)>);
-	(continue $p:tt) => (Escape<proto!(@peano $p)>);
-	(continue) => (Escape<Z>);
-	(goto $p:ty) => ($p);
-	(End) => (End);
-	({$($rest:tt)*}) => (proto!($($rest)*));
-	(Choose { $p:tt, $($rest:tt)*}) => (Choose<proto!($p), proto!(Choose {$($rest)*})>);
-	(Choose { $p:tt }) => (Finally<proto!($p)>);
-	(Accept { $p:tt, $($rest:tt)*}) => (Accept<proto!($p), proto!(Accept {$($rest)*})>);
-	(Accept { $p:tt }) => (Finally<proto!($p)>);
-*/
-
 macro_rules! proto(
 	(@form_ty End) => (End);
+	(@form_ty Goto $t:ty) => (Goto<$t>);
 	(@form_ty Recv $t:ty, $($rest:tt)*) => (Recv<$t, proto!(@form_ty $($rest)*)>);
 	(@form_ty Send $t:ty, $($rest:tt)*) => (Send<$t, proto!(@form_ty $($rest)*)>);
 	(@form_ty Choose {$p:tt, $($rest:tt)*}) => (Choose<proto!(@form_ty $p), proto!(@form_ty Choose {$($rest)*})>);
@@ -75,18 +60,18 @@ macro_rules! proto(
 	);
 );
 
+struct Atm;
+
 proto!(Atm, Start = {
 	Recv usize,
 	Test = {
 		Recv usize,
 		Lol = {Choose {
 			End,
-			End
+			Goto Test
 		}}
 	}
 });
-
-trace_macros!(false);
 
 fn main() {
 

@@ -56,6 +56,7 @@ macro_rules! proto(
     (@form_ty Accept {$p:ty = {$($inner:tt)*}, $($rest:tt)*}) => (Accept<proto!(@form_ty $p = {$($inner)*}), proto!(@form_ty Accept {$($rest)*})>);
     (@form_ty {$($stuff:tt)*}) => (proto!(@form_ty $($stuff)*));
     (@form_ty $i:ty = {$($stuff:tt)*}) => (<$i as Alias>::Id);
+    (@form_ty $i:ty = $t:ident {$($stuff:tt)*}) => (<$i as Alias>::Id);
     (@new_aliases () $($others:tt)*) => (
         proto!(@construct_alias $($others)*);
     );
@@ -67,6 +68,9 @@ macro_rules! proto(
     );
     (@new_aliases ($alias:ident = {$($astuff:tt)*} $($lol:tt)*) $($others:tt)*) => (
         proto!(@new_aliases ($($lol)*) ($alias = {$($astuff)*}) $($others)*);
+    );
+    (@new_aliases ($alias:ident = $t:ident {$($astuff:tt)*} $($lol:tt)*) $($others:tt)*) => (
+        proto!(@new_aliases ($($lol)*) ($alias = {$t {$($astuff)*}}) $($others)*);
     );
     (@new_aliases ($x:ident $($rest:tt)*) $($others:tt)*) => (
         proto!(@new_aliases ($($rest)*) $($others)*);

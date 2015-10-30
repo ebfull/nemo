@@ -15,7 +15,7 @@ struct Atm {
 
 proto!(Atm, Start = {
     Recv String,
-    AtmMenu = {Accept {
+    AtmMenu = Accept {
         AtmDeposit = {
             Recv u64,
             Send u64,
@@ -30,14 +30,14 @@ proto!(Atm, Start = {
             Send u64,
             Goto AtmMenu
         },
-        AtmEnd = {End}
-    }}
+        End
+    }
 });
 
 handlers!(
     Atm(String, usize, u64, bool);
 
-    this(alias AtmEnd) => {
+    this(End) => {
         this.close()
     }
 

@@ -23,21 +23,21 @@ fn test_proto_macro() {
     }
 
     // Send/Recv
-    same!(Recv<usize, End> = proto!(Recv usize, End));
-    same!(Send<usize, End> = proto!(Send usize, End));
-    same!(Send<usize, Recv<u8, End>> = proto!(Send usize, Recv u8, End));
-    same!(Recv<usize, Send<u8, End>> = proto!(Recv usize, Send u8, End));
+    same!(Recv<usize, End> = proto!(@form_ty Recv usize, End));
+    same!(Send<usize, End> = proto!(@form_ty Send usize, End));
+    same!(Send<usize, Recv<u8, End>> = proto!(@form_ty Send usize, Recv u8, End));
+    same!(Recv<usize, Send<u8, End>> = proto!(@form_ty Recv usize, Send u8, End));
 
 
     // Nest/Escape
-    same!(Nest<Send<usize, Escape<Z>>> = proto!(
+    same!(Nest<Send<usize, Escape<Z>>> = proto!(@form_ty 
         loop {
             Send usize,
             continue 0
         }
     ));
 
-    same!(Nest<Recv<usize, Nest<Send<usize, Escape<S<Z>>>>>> = proto!(
+    same!(Nest<Recv<usize, Nest<Send<usize, Escape<S<Z>>>>>> = proto!(@form_ty 
         loop {
             Recv usize,
             loop {
@@ -49,7 +49,7 @@ fn test_proto_macro() {
 
     // Choose/Accept
 
-    same!(Choose<Recv<usize, End>, Finally<End>> = proto!(
+    same!(Choose<Recv<usize, End>, Finally<End>> = proto!(@form_ty 
         Choose {
             {
                 Recv usize,
@@ -80,7 +80,7 @@ fn test_proto_macro() {
                  >
             >
         >
-     = proto!(
+     = proto!(@form_ty 
         loop {
             Recv usize,
             Choose {
@@ -127,7 +127,7 @@ fn test_proto_macro() {
                  >
             >
         >
-     = proto!(
+     = proto!(@form_ty 
         loop {
             Recv usize,
             Accept {
@@ -152,9 +152,6 @@ fn test_proto_macro() {
             }
         }
     ));
-
-
-    same!(Recv<usize, End> = proto!(goto MyAlias));
 }
 
 #[test]

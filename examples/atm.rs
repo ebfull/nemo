@@ -13,67 +13,51 @@ struct Atm {
     balance: u64
 }
 
-type AtmProtocol = proto!(
-    Recv String, // get the account id
-    loop {
-        goto AtmMenu
-    }
-);
-
-type AtmMenu = proto!(
-    Accept {
-        {goto AtmDeposit}, // user wants to deposit
-        {goto AtmWithdraw}, // user wants to withdraw
-        {goto AtmGetBalance}, // user wants to get balance
-        End // user is done
-    }
-);
-
-type AtmDeposit = proto!(
-    Recv u64, // get the amount they're depositing
-    Send u64, // tell them their new balance
-    continue
-);
-
-type AtmWithdraw = proto!(
-    Recv u64,  // get the amount they're withdrawing
-    Send bool, // tell them if withdrawal succeeded
-    continue
-);
-
-type AtmGetBalance = proto!(
-    Send u64,
-    continue
-);
-
-impl Protocol for Atm {
-    type Initial = AtmProtocol;
-}
+proto!(Atm, Start = {
+    Recv String,
+    AtmMenu = {Accept {
+        {AtmDeposit = {
+            Recv u64,
+            Send u64,
+            Goto AtmMenu
+        }},
+        {AtmWithdraw = {
+            Recv u64,
+            Send bool,
+            Goto AtmMenu
+        }},
+        {AtmGetBalance = {
+            Send u64,
+            Goto AtmMenu
+        }},
+        {AtmEnd = {End}}
+    }}
+});
 
 handlers!(
-    Atm(String, u64, bool);
+    Atm(String, usize, u64, bool);
 
-    this(AtmMenu => End) => {
+    this(alias AtmEnd) => {
         this.close()
     }
 
-    this(AtmMenu => AtmGetBalance) => {
+    this(alias AtmGetBalance) => {
         let cur_balance = this.proto.balance;
-        this.send(cur_balance).pop().accept().ok().unwrap()
+        this.send(cur_balance).goto().accept().ok().unwrap()
     }
 
-    this(AtmMenu => AtmDeposit) => {
+    this(alias AtmDeposit) => {
         match this.recv() {
             Ok((amt, mut this)) => {
                 this.proto.balance += amt;
                 let new_balance = this.proto.balance;
-                this.send(new_balance).pop().accept().ok().unwrap()
+                this.send(new_balance).goto().accept().ok().unwrap()
             },
             _ => panic!("Client unexpectedly dropped")
         }
     }
 
-    this(AtmMenu => AtmWithdraw) => {
+    this(alias AtmWithdraw) => {
         match this.recv() {
             Ok((amt, mut this)) => {
                 if this.proto.balance < amt {
@@ -81,16 +65,16 @@ handlers!(
                 } else {
                     this.proto.balance -= amt;
                     this.send(true)
-                }.pop().accept().ok().unwrap()
+                }.goto().accept().ok().unwrap()
             },
             _ => panic!("Client unexpectedly dropped")
         }
     }
 
-    this(AtmProtocol) => {
+    this(alias Start) => {
         match this.recv() {
             Ok((_, this)) => {
-                this.enter().accept().ok().unwrap()
+                this.accept().ok().unwrap()
             },
             Err(_) => {
                 panic!("Client unexpectedly dropped");
@@ -111,13 +95,12 @@ fn main() {
 
     thread::spawn(move || {
         match client.send("Sean".into())
-                    .enter()
-                    .choose::<<AtmDeposit as SessionType>::Dual>()
+                    .choose::<<<AtmDeposit as Alias>::Id as SessionType>::Dual>()
                     .send(100)
                     .recv() {
                         Ok((worked, client)) => {
                             assert_eq!(worked, 100);
-                            client.pop().choose::<End>().close();
+                            client.goto().choose::<End>().close();
                         },
                         Err(_) => {
                             panic!("Server unexpectedly dropped");

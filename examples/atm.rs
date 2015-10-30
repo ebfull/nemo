@@ -16,21 +16,21 @@ struct Atm {
 proto!(Atm, Start = {
     Recv String,
     AtmMenu = {Accept {
-        {AtmDeposit = {
+        AtmDeposit = {
             Recv u64,
             Send u64,
             Goto AtmMenu
-        }},
-        {AtmWithdraw = {
+        },
+        AtmWithdraw = {
             Recv u64,
             Send bool,
             Goto AtmMenu
-        }},
-        {AtmGetBalance = {
+        },
+        AtmGetBalance = {
             Send u64,
             Goto AtmMenu
-        }},
-        {AtmEnd = {End}}
+        },
+        AtmEnd = {End}
     }}
 });
 

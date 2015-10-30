@@ -50,6 +50,10 @@ macro_rules! proto(
     (@form_ty Choose {$p:tt}) => (Finally<proto!(@form_ty $p)>);
     (@form_ty Accept {$p:tt, $($rest:tt)*}) => (Accept<proto!(@form_ty $p), proto!(@form_ty Accept {$($rest)*})>);
     (@form_ty Accept {$p:tt}) => (Finally<proto!(@form_ty $p)>);
+    (@form_ty Accept {$p:ty = {$($inner:tt)*}}) => (Finally<proto!(@form_ty $p = {$($inner)*})>);
+    (@form_ty Choose {$p:ty = {$($inner:tt)*}}) => (Finally<proto!(@form_ty $p = {$($inner)*})>);
+    (@form_ty Choose {$p:ty = {$($inner:tt)*}, $($rest:tt)*}) => (Choose<proto!(@form_ty $p = {$($inner)*}), proto!(@form_ty Choose {$($rest)*})>);
+    (@form_ty Accept {$p:ty = {$($inner:tt)*}, $($rest:tt)*}) => (Accept<proto!(@form_ty $p = {$($inner)*}), proto!(@form_ty Accept {$($rest)*})>);
     (@form_ty {$($stuff:tt)*}) => (proto!(@form_ty $($stuff)*));
     (@form_ty $i:ty = {$($stuff:tt)*}) => (<$i as Alias>::Id);
     (@new_aliases () $($others:tt)*) => (

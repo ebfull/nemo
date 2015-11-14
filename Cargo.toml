@@ -10,5 +10,8 @@ repository = "https://github.com/ebfull/nemo"
 documentation = "https://ebfull.github.io/nemo/"
 license = "MIT"
 
+[dependencies]
+stack_dst = "0.2.1"
+
 [dev-dependencies]
 compiletest_rs = "0.0.10"

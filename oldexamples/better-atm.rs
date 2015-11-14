@@ -1,4 +1,4 @@
-proto!(Atm, Start = {
+proto!(Atm = {
     Recv String,
     AtmMenu = Accept {
         AtmDeposit = {
@@ -24,7 +24,7 @@ fn main() {
         balance: usize
     }
 
-    let (server, client) = Blocking::new::<Start>();
+    let (server, client) = Blocking::new::<Atm>();
 
     let mut ctx = Context { balance: 0 };
 
